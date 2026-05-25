@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dispatch Operations Board</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:          #060912;
+      --glass:       rgba(255,255,255,0.04);
+      --glass-hover: rgba(255,255,255,0.07);
+      --glass-card:  rgba(255,255,255,0.05);
+      --border:      rgba(255,255,255,0.08);
+      --border-hi:   rgba(255,255,255,0.14);
+      --text:        #f0f4ff;
+      --text-2:      #8fa3c0;
+      --text-3:      #4d637f;
+      --on:          #22c55e;
+      --on-glow:     rgba(34,197,94,0.35);
+      /* Program colors */
+      --sdva:  #4f9eff;
+      --nctd:  #22d3ee;
+      --lbva:  #c084fc;
+      --stpa:  #34d399;
+      --fhc:   #fbbf24;
+      /* Radius */
+      --r-sm: 10px;
+      --r-md: 14px;
+      --r-lg: 20px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── AMBIENT BACKGROUND BLOBS ───────────────────────────── */
+    .bg-blobs {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 0;
+      overflow: hidden;
+    }
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.12;
+    }
+    .blob-1 { width: 700px; height: 500px; background: #4f9eff; top: -150px; left: -100px; }
+    .blob-2 { width: 600px; height: 500px; background: #c084fc; bottom: -100px; right: -100px; }
+    .blob-3 { width: 400px; height: 400px; background: #34d399; top: 40%; left: 35%; opacity: 0.06; }
+
+    /* ── LAYOUT WRAPPER ─────────────────────────────────────── */
+    .layout { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── HEADER ─────────────────────────────────────────────── */
+    .hdr {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(6,9,18,0.75);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 68px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-icon {
+      width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(135deg, #4f9eff 0%, #c084fc 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .brand h1 { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.015em; }
+    .brand p  { font-size: 0.7rem; color: var(--text-2); margin-top: 1px; }
+    .hdr-right { display: flex; align-items: center; gap: 18px; }
+    .live-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.2);
+      color: var(--on);
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em;
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--on);
+      animation: live-blink 1.8s ease-in-out infinite;
+    }
+    @keyframes live-blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+    .clock { text-align: right; }
+    .clock-time {
+      font-size: 1.4rem; font-weight: 700;
+      font-variant-numeric: tabular-nums; letter-spacing: -0.025em;
+      background: linear-gradient(135deg, #e0eaff, #c084fc);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .clock-date { font-size: 0.68rem; color: var(--text-2); margin-top: 1px; }
+
+    /* ── STATS BAR ──────────────────────────────────────────── */
+    .stats-bar {
+      background: rgba(6,9,18,0.5);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 46px;
+      display: flex; align-items: center; gap: 32px;
+    }
+    .stat { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-2); }
+    .stat strong { color: var(--text); font-size: 0.9rem; font-weight: 700; }
+    .stat-sep { width: 1px; height: 16px; background: var(--border); }
+
+    /* ── NAV TABS ────────────────────────────────────────────── */
+    .nav {
+      background: rgba(6,9,18,0.6);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      display: flex; gap: 2px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .nav::-webkit-scrollbar { display: none; }
+    .tab {
+      position: relative;
+      padding: 0 18px; height: 48px;
+      background: none; border: none; color: var(--text-2);
+      cursor: pointer; font-size: 0.82rem; font-weight: 500;
+      white-space: nowrap; display: flex; align-items: center; gap: 8px;
+      font-family: inherit; border-bottom: 2px solid transparent;
+      transition: color .2s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--text); border-bottom-color: transparent; }
+    .tab.active::after {
+      content: '';
+      position: absolute; bottom: -1px; left: 0; right: 0; height: 2px;
+      background: var(--tab-color, #4f9eff);
+      border-radius: 1px;
+    }
+    .tab-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .tab-badge {
+      background: rgba(255,255,255,0.06);
+      color: var(--text-3);
+      padding: 1px 7px; border-radius: 9px;
+      font-size: 0.67rem; font-weight: 600;
+    }
+
+    /* ── MAIN ────────────────────────────────────────────────── */
+    .main { padding: 24px 28px; flex: 1; }
+
+    /* ── TOOLBAR ─────────────────────────────────────────────── */
+    .toolbar {
+      display: flex; gap: 10px; margin-bottom: 24px;
+      align-items: center; flex-wrap: wrap;
+    }
+    .search-wrap { flex: 1; min-width: 180px; position: relative; }
+    .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-3); }
+    .search {
+      width: 100%; padding: 10px 12px 10px 36px;
+      background: var(--glass-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm); color: var(--text);
+      font-size: 0.82rem; outline: none; font-family: inherit;
+      transition: border-color .2s, background .2s;
+    }
+    .search:focus { border-color: rgba(79,158,255,0.5); background: rgba(79,158,255,0.06); }
+    .search::placeholder { color: var(--text-3); }
+    .tbtn {
+      padding: 10px 16px;
+      background: var(--glass-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm); color: var(--text-2);
+      cursor: pointer; font-size: 0.78rem; font-weight: 500;
+      font-family: inherit; white-space: nowrap;
+      display: flex; align-items: center; gap: 7px;
+      transition: all .2s;
+    }
+    .tbtn:hover { color: var(--text); border-color: var(--border-hi); }
+    .tbtn.on {
+      background: rgba(34,197,94,0.1);
+      border-color: rgba(34,197,94,0.35); color: var(--on);
+    }
+    .view-grp {
+      display: flex;
+      background: var(--glass-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm); overflow: hidden;
+    }
+    .vbtn {
+      padding: 10px 16px;
+      background: none; border: none; border-right: 1px solid var(--border);
+      color: var(--text-2); cursor: pointer;
+      font-size: 0.78rem; font-weight: 500; font-family: inherit;
+      transition: all .2s;
+    }
+    .vbtn:last-child { border-right: none; }
+    .vbtn.active { background: rgba(255,255,255,0.07); color: var(--text); }
+
+    /* ── SECTION DIVIDER ─────────────────────────────────────── */
+    .sec { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; margin-top: 28px; }
+    .sec:first-child { margin-top: 0; }
+    .sec-label {
+      font-size: 0.63rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--text-3); white-space: nowrap;
+    }
+    .sec-line { flex: 1; height: 1px; background: var(--border); }
+
+    /* ── PERSON CARD ─────────────────────────────────────────── */
+    .cards-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; }
+
+    .pcard {
+      background: var(--glass-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 13px 15px;
+      display: flex; align-items: center; gap: 12px;
+      min-width: 210px; flex: 1; max-width: 270px;
+      cursor: default;
+      transition: background .2s, transform .2s, border-color .2s,
+                  box-shadow .2s;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .pcard:hover {
+      background: var(--glass-hover);
+      border-color: var(--border-hi);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+    }
+    .pcard.on-shift {
+      border-color: rgba(34,197,94,0.25);
+      box-shadow: 0 2px 12px rgba(34,197,94,0.08);
+    }
+    .pcard.on-shift:hover {
+      border-color: rgba(34,197,94,0.4);
+      box-shadow: 0 8px 28px rgba(34,197,94,0.12);
+    }
+
+    /* Avatar */
+    .av {
+      width: 40px; height: 40px; border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 700; flex-shrink: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .pi { flex: 1; min-width: 0; }
+    .pname { font-size: 0.88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .prole { font-size: 0.69rem; color: var(--text-2); margin-top: 1px; }
+    .pshift { font-size: 0.67rem; color: var(--text-3); margin-top: 3px; font-variant-numeric: tabular-nums; }
+    .ptags { display: flex; gap: 3px; margin-top: 5px; flex-wrap: wrap; }
+    .ptag {
+      font-size: 0.6rem; padding: 2px 7px;
+      border-radius: 5px; font-weight: 600; letter-spacing: 0.03em;
+    }
+
+    /* Status dot */
+    .sdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .sdot.on { background: var(--on); box-shadow: 0 0 6px var(--on-glow); animation: dot-pulse 2.2s ease-in-out infinite; }
+    .sdot.off { background: rgba(255,255,255,0.15); }
+    @keyframes dot-pulse {
+      0%,100% { box-shadow: 0 0 6px var(--on-glow); }
+      50%      { box-shadow: 0 0 14px var(--on-glow), 0 0 20px rgba(34,197,94,0.2); }
+    }
+
+    /* ── PROGRAM SECTION CARD ────────────────────────────────── */
+    .prog-section {
+      background: var(--glass-card);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      margin-bottom: 14px;
+      transition: border-color .2s;
+    }
+    .prog-hdr {
+      padding: 14px 20px;
+      display: flex; align-items: center; gap: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .prog-stripe { width: 4px; height: 36px; border-radius: 2px; flex-shrink: 0; }
+    .prog-title { font-size: 0.98rem; font-weight: 700; }
+    .prog-lead { font-size: 0.7rem; color: var(--text-2); margin-top: 2px; }
+    .prog-badge {
+      margin-left: auto; padding: 4px 12px;
+      border-radius: 20px; font-size: 0.7rem; font-weight: 600;
+      white-space: nowrap;
+    }
+    .prog-grid {
+      padding: 14px 20px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
+      gap: 8px;
+    }
+
+    /* Staff item */
+    .sitem {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 10px 13px;
+      display: flex; align-items: center; gap: 10px;
+      transition: background .2s, border-color .2s;
+    }
+    .sitem:hover { background: rgba(255,255,255,0.06); border-color: var(--border-hi); }
+    .sitem.on-shift { border-color: rgba(34,197,94,0.18); }
+    .sava {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+    }
+    .sname  { font-size: 0.81rem; font-weight: 600; }
+    .srole  { font-size: 0.67rem; color: var(--text-2); }
+    .sshift { font-size: 0.65rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+    /* ── AFTER-HOURS CARDS ───────────────────────────────────── */
+    .ah-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .ah-card {
+      background: var(--glass-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 14px 18px;
+      flex: 1; min-width: 210px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .ah-card.on-shift { border-color: rgba(34,197,94,0.28); box-shadow: 0 4px 20px rgba(34,197,94,0.08); }
+    .ah-label {
+      font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--text-3); margin-bottom: 10px;
+    }
+    .ah-inner { display: flex; align-items: center; gap: 11px; }
+
+    /* ── ORG CHART ───────────────────────────────────────────── */
+    .org-scroller { overflow-x: auto; padding-bottom: 32px; }
+    .org-tree { min-width: 900px; padding: 0 20px; }
+
+    /* Center row */
+    .org-center { display: flex; justify-content: center; }
+    /* Vertical connector */
+    .org-vline { display: flex; justify-content: center; height: 28px; }
+    .org-vline > div { width: 2px; background: linear-gradient(to bottom, var(--border), rgba(255,255,255,0.04)); }
+
+    /* Leads row with branch lines */
+    .org-leads-row {
+      display: flex; justify-content: center; gap: 32px;
+      position: relative; padding: 0 12px;
+    }
+    .org-leads-row::before {
+      content: '';
+      position: absolute; top: 0;
+      left: calc(50% - 250px); width: 500px;
+      height: 2px;
+      background: linear-gradient(to right, transparent, var(--border) 15%, var(--border) 85%, transparent);
+    }
+    .org-lead-col { display: flex; flex-direction: column; align-items: center; }
+    .org-lead-col::before { content: ''; width: 2px; height: 28px; background: var(--border); }
+
+    /* ORG NODE */
+    .org-node {
+      background: var(--glass-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 13px 16px;
+      text-align: center; min-width: 155px;
+      position: relative;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .org-node:hover {
+      border-color: var(--border-hi);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+    }
+    .org-node.on-shift { border-color: rgba(34,197,94,0.3); }
+    .org-node-dot {
+      position: absolute; top: 10px; right: 10px;
+      width: 7px; height: 7px; border-radius: 50%;
+    }
+    .org-node-dot.on { background: var(--on); box-shadow: 0 0 5px var(--on-glow); }
+    .org-node-dot.off { background: rgba(255,255,255,0.15); }
+    .org-nlabel {
+      font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--text-3); margin-bottom: 4px;
+    }
+    .org-nname { font-size: 0.88rem; font-weight: 700; }
+    .org-nsched { font-size: 0.68rem; color: var(--text-2); margin-top: 3px; font-variant-numeric: tabular-nums; }
+    .org-ntags { display: flex; justify-content: center; gap: 3px; margin-top: 7px; flex-wrap: wrap; }
+
+    /* Org programs section */
+    .org-progs { display: flex; justify-content: center; gap: 12px; margin-top: 28px; flex-wrap: wrap; padding: 0 16px; }
+    .org-prog {
+      flex: 1; min-width: 175px; max-width: 230px;
+      border-radius: var(--r-md); padding: 13px 15px;
+      border: 1px solid transparent;
+    }
+    .org-prog-name {
+      font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; margin-bottom: 9px;
+    }
+    .org-row-sm {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 8px; margin-bottom: 4px;
+    }
+    .org-row-sm.support {
+      background: rgba(0,0,0,0.12);
+      border: 1px dashed rgba(255,255,255,0.06);
+    }
+    .org-row-sm:last-child { margin-bottom: 0; }
+    .org-mini-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .org-mini-name { font-size: 0.77rem; font-weight: 600; }
+    .org-mini-sched { font-size: 0.62rem; color: var(--text-3); font-variant-numeric: tabular-nums; }
+    .org-supp-sep {
+      font-size: 0.58rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--text-3); margin: 6px 0 4px; padding-left: 8px;
+    }
+
+    /* After-hours in org */
+    .org-ah-row { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 28px; padding: 0 16px; }
+    .org-ah-item {
+      background: var(--glass-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 12px 18px;
+      min-width: 185px;
+      display: flex; align-items: center; gap: 12px;
+      flex: 1; max-width: 250px;
+    }
+    .org-ah-item.on-shift { border-color: rgba(34,197,94,0.3); }
+
+    /* Data support row */
+    .org-ds-row { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 14px; padding: 0 16px; }
+
+    /* ── EMPTY STATE ─────────────────────────────────────────── */
+    .empty { text-align: center; padding: 56px 20px; color: var(--text-3); }
+    .empty h3 { font-size: 0.98rem; color: var(--text-2); margin-bottom: 6px; }
+
+    /* ── HIDDEN ──────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+
+    /* ── RESPONSIVE ──────────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .hdr { padding: 0 16px; height: auto; padding: 12px 16px; flex-wrap: wrap; gap: 10px; }
+      .main, .stats-bar, .nav { padding-left: 16px; padding-right: 16px; }
+      .pcard { max-width: 100%; }
+      .clock-time { font-size: 1.1rem; }
+      .hdr-right { gap: 10px; }
+    }
+
+    /* ── SVG ICON HELPER ─────────────────────────────────────── */
+    .icon { display: inline-flex; align-items: center; justify-content: center; }
+  </style>
+</head>
+<body>
+<div class="bg-blobs">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
+
+<div class="layout">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Dispatch Operations</h1>
+        <p>Real-time Staff Schedule</p>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+      <div class="clock">
+        <div class="clock-time" id="clockTime">--:-- --</div>
+        <div class="clock-date" id="clockDate">--</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar" id="statsBar"></div>
+
+  <!-- NAV -->
+  <nav class="nav" id="nav"></nav>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="search" id="searchInput" type="text" placeholder="Search by name or role…">
+      </div>
+      <button class="tbtn" id="onShiftBtn" onclick="toggleFilter()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
+        On Shift Only
+      </button>
+      <div class="view-grp">
+        <button class="vbtn active" id="vCards" onclick="switchView('cards')">Cards</button>
+        <button class="vbtn" id="vOrg" onclick="switchView('org')">Org Chart</button>
+      </div>
+    </div>
+    <div id="cardsView"></div>
+    <div id="orgView" class="hidden"></div>
+  </main>
+
+</div><!-- /layout -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
+
+const PROGS = {
+  sdva: { name: 'San Diego VA',       short: 'SDVA', color: '#4f9eff', glow: 'rgba(79,158,255,0.15)' },
+  nctd: { name: 'NCTD',               short: 'NCTD', color: '#22d3ee', glow: 'rgba(34,211,238,0.15)' },
+  lbva: { name: 'Long Beach VA',      short: 'LBVA', color: '#c084fc', glow: 'rgba(192,132,252,0.15)' },
+  stpa: { name: "St Paul's PACE",     short: 'STPA', color: '#34d399', glow: 'rgba(52,211,153,0.15)' },
+  fhc:  { name: 'Family Health Center', short: 'FHC',  color: '#fbbf24', glow: 'rgba(251,191,36,0.15)' },
+};
+
+const ORG = {
+  supervisor: { id:'sup',  name:'Supervisor',       role:'Supervisor',     schedule:'7am - 4pm' },
+  dataSupport: [
+    { id:'flor',  name:'Flor Pineda',      role:'Data Support', location:'San Diego',  schedule:'12pm - 8pm' },
+    { id:'fflo',  name:'Fernando Flores',  role:'Data Support', location:'Long Beach', schedule:'12pm - 8pm' },
+  ],
+  leads: [
+    { id:'ldr1', name:'Fernando Rivera', role:'Dispatch Lead', schedule:'5am - 2pm',    programs:['sdva','nctd'] },
+    { id:'ldr2', name:'Rene Ramos',      role:'Dispatch Lead', schedule:'9:30am - 6pm', programs:['lbva'] },
+    { id:'ldr3', name:'Ivan Lopez',      role:'Dispatch Lead', schedule:'8am - 5pm',    programs:['stpa','fhc'] },
+  ],
+  programs: {
+    sdva: {
+      lead: 'Fernando Rivera',
+      dispatchers: [ { id:'cacos', name:'Carlos Acosta',  role:'Dispatcher',   schedule:'7:30am - 4:30pm' } ],
+      support:     [ { id:'will',  name:'William Veliz',  role:'Support Team', schedule:'7:30am - 4:30pm' } ],
+    },
+    nctd: {
+      lead: 'Fernando Rivera',
+      dispatchers: [ { id:'rcast', name:'Rene Castro',    role:'Dispatcher',   schedule:'12pm - 8pm' } ],
+      support:     [ { id:'will',  name:'William Veliz',  role:'Support Team', schedule:'7:30am - 4:30pm' } ],
+    },
+    lbva: {
+      lead: 'Rene Ramos',
+      dispatchers: [
+        { id:'anth', name:'Anthony Gomez',    role:'Dispatcher', schedule:'6am - 2:30pm' },
+        { id:'quin', name:'Quinesha Pimpton', role:'Dispatcher', schedule:'10:30am - 7pm' },
+      ],
+      support: [
+        { id:'andr', name:'Andre Samayoa',  role:'Support Team', schedule:'6am - 3:30pm' },
+        { id:'mari', name:'Mario Martinez', role:'Support Team', schedule:'10am - 7pm' },
+      ],
+    },
+    stpa: {
+      lead: 'Ivan Lopez',
+      dispatchers: [
+        { id:'clau', name:'Claudia De La Cruz',  role:'Dispatcher', schedule:'6am - 2pm' },
+        { id:'jacq', name:'Jacquie Marroquin',   role:'Dispatcher', schedule:'10am - 7pm' },
+      ],
+      support: [ { id:'alej', name:'Alejandro Jerez', role:'Support Team', schedule:'8am - 4:30pm' } ],
+    },
+    fhc: {
+      lead: 'Ivan Lopez',
+      dispatchers: [ { id:'susa', name:'Susan Marroquin', role:'Dispatcher', schedule:'7:30am - 4pm' } ],
+      support:     [ { id:'alej', name:'Alejandro Jerez', role:'Support Team', schedule:'8am - 4:30pm' } ],
+    },
+  },
+  closing:   { id:'luca',  name:'Luca Fajardo',  role:'Closing Dispatch',  schedule:'4:30pm - 10pm' },
+  overnight: { id:'maria', name:'Maria Sanchez', role:'Overnight Dispatch', schedule:'9pm - 5:30am' },
+};
+
+// ═══════════════════════════════════════════════════════
+// SHIFT LOGIC
+// ═══════════════════════════════════════════════════════
+
+function toMin(s) {
+  s = s.trim().toLowerCase();
+  const m = s.match(/^(\d+)(?::(\d+))?\s*(am|pm)$/);
+  if (!m) return null;
+  let h = +m[1], min = +(m[2]||0), p = m[3];
+  if (p==='pm' && h!==12) h+=12;
+  if (p==='am' && h===12) h=0;
+  return h*60+min;
+}
+
+function onShift(sched) {
+  if (!sched || sched==='24/7') return true;
+  const parts = sched.split(/\s*[-–]\s*/);
+  if (parts.length!==2) return false;
+  const s=toMin(parts[0]), e=toMin(parts[1]);
+  if (s===null||e===null) return false;
+  const now=new Date(), cur=now.getHours()*60+now.getMinutes();
+  return e>s ? (cur>=s && cur<e) : (cur>=s || cur<e);
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+
+function initials(n){ return n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(); }
+
+function rgba(hex, a) {
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function tagHTML(ids) {
+  return ids.map(p=>`<span class="ptag" style="background:${rgba(PROGS[p].color,.15)};color:${PROGS[p].color}">${PROGS[p].short}</span>`).join('');
+}
+
+function dot(active) {
+  return `<div class="sdot ${active?'on':'off'}"></div>`;
+}
+
+function avStyle(color) {
+  return `background:${rgba(color,.18)};color:${color}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// ALL STAFF (deduped)
+// ═══════════════════════════════════════════════════════
+
+function allStaff() {
+  const seen=new Set(), out=[];
+  function add(p){ if(!seen.has(p.id)){seen.add(p.id);out.push(p);} }
+  add(ORG.supervisor);
+  ORG.dataSupport.forEach(add);
+  ORG.leads.forEach(add);
+  Object.values(ORG.programs).forEach(pg=>{ pg.dispatchers.forEach(add); pg.support.forEach(add); });
+  add(ORG.closing); add(ORG.overnight);
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+
+let curTab='all', filterOn=false, query='', curView='cards';
+
+// ═══════════════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════════════
+
+function tick(){
+  const n=new Date();
+  document.getElementById('clockTime').textContent=n.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',second:'2-digit',hour12:true});
+  document.getElementById('clockDate').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+}
+
+// ═══════════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════════
+
+function renderStats(){
+  const all=allStaff(), active=all.filter(p=>onShift(p.schedule)).length;
+  document.getElementById('statsBar').innerHTML=`
+    <div class="stat">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>
+      <strong>${active}</strong> on shift now
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <strong>${all.length}</strong> total staff
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      <strong>${Object.keys(PROGS).length}</strong> programs
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════════════
+
+function renderNav(){
+  const tabs=[{id:'all',label:'All Staff',color:'#8fa3c0'},...Object.entries(PROGS).map(([id,m])=>({id,label:m.name,color:m.color}))];
+  document.getElementById('nav').innerHTML=tabs.map(t=>{
+    const cnt=t.id==='all' ? allStaff().length
+      : [...(ORG.programs[t.id]?.dispatchers||[]),...(ORG.programs[t.id]?.support||[])].length;
+    return `<button class="tab ${curTab===t.id?'active':''}" style="--tab-color:${t.color}" onclick="setTab('${t.id}')">
+      <span class="tab-dot" style="background:${t.color}"></span>${t.label}
+      <span class="tab-badge">${cnt}</span>
+    </button>`;
+  }).join('');
+}
+
+function setTab(id){ curTab=id; renderNav(); render(); }
+
+// ═══════════════════════════════════════════════════════
+// FILTER HELPERS
+// ═══════════════════════════════════════════════════════
+
+function toggleFilter(){
+  filterOn=!filterOn;
+  document.getElementById('onShiftBtn').classList.toggle('on',filterOn);
+  render();
+}
+
+function matches(p){
+  if(!query) return true;
+  return p.name.toLowerCase().includes(query.toLowerCase())
+      || (p.role||'').toLowerCase().includes(query.toLowerCase());
+}
+function visible(p){ return matches(p)&&(!filterOn||onShift(p.schedule)); }
+
+// ═══════════════════════════════════════════════════════
+// PERSON CARD HTML
+// ═══════════════════════════════════════════════════════
+
+function pcardHTML(p, color, tags){
+  const a=onShift(p.schedule);
+  const avBg=color?avStyle(color):'background:rgba(255,255,255,0.08);color:#8fa3c0';
+  return `<div class="pcard ${a?'on-shift':''}">
+    <div class="av" style="${avBg}">${initials(p.name)}</div>
+    <div class="pi">
+      <div class="pname">${p.name}</div>
+      <div class="prole">${p.role}${p.location?` · ${p.location}`:''}</div>
+      <div class="pshift">${p.schedule}</div>
+      ${tags?`<div class="ptags">${tags}</div>`:''}
+    </div>
+    ${dot(a)}
+  </div>`;
+}
+
+// Staff item inside program section
+function sitemHTML(p, color){
+  const a=onShift(p.schedule);
+  return `<div class="sitem ${a?'on-shift':''}">
+    <div class="sava" style="${avStyle(color)}">${initials(p.name)}</div>
+    <div class="pi">
+      <div class="sname">${p.name}</div>
+      <div class="srole">${p.role}</div>
+      <div class="sshift">${p.schedule}</div>
+    </div>
+    ${dot(a)}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// CARDS VIEW
+// ═══════════════════════════════════════════════════════
+
+function renderCards(){
+  const el=document.getElementById('cardsView');
+  let h='';
+
+  if(curTab==='all'){
+    // Leadership
+    const ldrs=[...ORG.leads, ORG.supervisor, ...ORG.dataSupport].filter(visible);
+    if(ldrs.length){
+      h+=`<div class="sec"><span class="sec-label">Leadership & Dispatch Leads</span><div class="sec-line"></div></div>
+          <div class="cards-row">`;
+      ORG.leads.forEach(l=>{ if(visible(l)) h+=pcardHTML(l,'#4f9eff',tagHTML(l.programs)); });
+      if(visible(ORG.supervisor)) h+=pcardHTML(ORG.supervisor,'#818cf8');
+      ORG.dataSupport.forEach(p=>{ if(visible(p)) h+=pcardHTML(p,'#fbbf24'); });
+      h+=`</div>`;
+    }
+
+    // Programs
+    h+=`<div class="sec"><span class="sec-label">Programs</span><div class="sec-line"></div></div>`;
+    Object.entries(PROGS).forEach(([id,meta])=>{
+      const pg=ORG.programs[id]; if(!pg) return;
+      const all=[...pg.dispatchers,...pg.support];
+      const shown=all.filter(visible); if(!shown.length) return;
+      const cnt=all.filter(p=>onShift(p.schedule)).length;
+      h+=`<div class="prog-section" style="border-left:3px solid ${meta.color}">
+        <div class="prog-hdr">
+          <div class="prog-stripe" style="background:linear-gradient(to bottom,${meta.color},${rgba(meta.color,.3)})"></div>
+          <div>
+            <div class="prog-title">${meta.name}</div>
+            <div class="prog-lead">Lead: ${pg.lead}</div>
+          </div>
+          <div class="prog-badge" style="background:${rgba(meta.color,.12)};color:${meta.color};border:1px solid ${rgba(meta.color,.25)}">
+            ${cnt} on shift
+          </div>
+        </div>
+        <div class="prog-grid">
+          ${shown.map(p=>sitemHTML(p,meta.color)).join('')}
+        </div>
+      </div>`;
+    });
+
+    // After hours
+    const ah=[ORG.closing,ORG.overnight].filter(visible);
+    if(ah.length){
+      h+=`<div class="sec"><span class="sec-label">After Hours</span><div class="sec-line"></div></div>
+          <div class="ah-row">`;
+      ah.forEach(p=>{
+        const a=onShift(p.schedule);
+        h+=`<div class="ah-card ${a?'on-shift':''}">
+          <div class="ah-label">${p.role}</div>
+          <div class="ah-inner">
+            <div class="av" style="background:rgba(255,255,255,0.07);color:#8fa3c0;border-radius:11px">${initials(p.name)}</div>
+            <div class="pi"><div class="pname">${p.name}</div><div class="pshift">${p.schedule}</div></div>
+            ${dot(a)}
+          </div>
+        </div>`;
+      });
+      h+=`</div>`;
+    }
+
+  } else {
+    // Single program tab
+    const pg=ORG.programs[curTab], meta=PROGS[curTab];
+    if(!pg){ el.innerHTML='<div class="empty"><h3>No data</h3></div>'; return; }
+    const lead=ORG.leads.find(l=>l.programs.includes(curTab));
+    if(lead && visible(lead)){
+      h+=`<div class="sec"><span class="sec-label">Dispatch Lead</span><div class="sec-line"></div></div>
+          <div class="cards-row">${pcardHTML(lead,meta.color)}</div>`;
+    }
+    const disp=pg.dispatchers.filter(visible);
+    if(disp.length){
+      h+=`<div class="sec"><span class="sec-label">Dispatchers</span><div class="sec-line"></div></div>
+          <div class="cards-row">${disp.map(p=>pcardHTML(p,meta.color)).join('')}</div>`;
+    }
+    const supp=pg.support.filter(visible);
+    if(supp.length){
+      h+=`<div class="sec"><span class="sec-label">Support Team</span><div class="sec-line"></div></div>
+          <div class="cards-row">${supp.map(p=>pcardHTML(p,meta.color)).join('')}</div>`;
+    }
+    if(!disp.length && !supp.length)
+      h='<div class="empty"><h3>No staff match current filters</h3></div>';
+  }
+
+  el.innerHTML=h||'<div class="empty"><h3>No results found</h3></div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// ORG CHART VIEW
+// ═══════════════════════════════════════════════════════
+
+function orgNode(person, color){
+  const a=person.schedule==='24/7'?true:onShift(person.schedule);
+  const bdr=color?`border-color:${rgba(color,.35)};box-shadow:0 4px 20px ${rgba(color,.1)}`:'';
+  return `<div class="org-node ${a?'on-shift':''}" style="${bdr}">
+    <div class="org-node-dot ${a?'on':'off'}"></div>
+    <div class="org-nlabel">${person.role||''}</div>
+    <div class="org-nname">${person.name}</div>
+    <div class="org-nsched">${person.schedule}</div>
+    ${person.programs?`<div class="org-ntags">${tagHTML(person.programs)}</div>`:''}
+  </div>`;
+}
+
+function renderOrg(){
+  const el=document.getElementById('orgView');
+  let h=`<div class="org-scroller"><div class="org-tree">`;
+
+  // Manager
+  h+=`<div class="org-center">${orgNode({name:'Dispatch Manager',role:'Manager',schedule:'24/7'})}</div>`;
+  h+=`<div class="org-vline"><div></div></div>`;
+
+  // Supervisor
+  h+=`<div class="org-center">${orgNode(ORG.supervisor)}</div>`;
+  h+=`<div class="org-vline"><div></div></div>`;
+
+  // Leads
+  h+=`<div class="org-leads-row">`;
+  ORG.leads.forEach(lead=>{
+    const c=PROGS[lead.programs[0]]?.color||'#4f9eff';
+    h+=`<div class="org-lead-col">${orgNode(lead,c)}</div>`;
+  });
+  h+=`</div>`;
+
+  // Programs — grouped by lead column
+  h+=`<div class="org-progs">`;
+  ORG.leads.forEach(lead=>{
+    lead.programs.forEach(pid=>{
+      const meta=PROGS[pid], pg=ORG.programs[pid];
+      h+=`<div class="org-prog" style="background:${rgba(meta.color,.07)};border-color:${rgba(meta.color,.25)}">
+        <div class="org-prog-name" style="color:${meta.color}">${meta.name}</div>
+        ${pg.dispatchers.map(p=>{
+          const a=onShift(p.schedule);
+          return `<div class="org-row-sm">
+            <div class="org-mini-dot" style="background:${a?'#22c55e':'rgba(255,255,255,0.15)'}${a?';box-shadow:0 0 5px rgba(34,197,94,.4)':''}"></div>
+            <div><div class="org-mini-name">${p.name}</div><div class="org-mini-sched">${p.schedule}</div></div>
+          </div>`;
+        }).join('')}
+        ${pg.support.length?`
+          <div class="org-supp-sep">Support</div>
+          ${pg.support.map(p=>{
+            const a=onShift(p.schedule);
+            return `<div class="org-row-sm support">
+              <div class="org-mini-dot" style="background:${a?'#22c55e':'rgba(255,255,255,0.12)'}"></div>
+              <div><div class="org-mini-name">${p.name}</div><div class="org-mini-sched">${p.schedule}</div></div>
+            </div>`;
+          }).join('')}
+        `:''}
+      </div>`;
+    });
+  });
+  h+=`</div>`;
+
+  // After hours + Data support
+  h+=`<div class="org-ah-row">`;
+  [ORG.closing,ORG.overnight].forEach(p=>{
+    const a=onShift(p.schedule);
+    h+=`<div class="org-ah-item ${a?'on-shift':''}">
+      <div class="org-mini-dot" style="width:9px;height:9px;background:${a?'#22c55e':'rgba(255,255,255,0.15)'}${a?';box-shadow:0 0 7px rgba(34,197,94,.4)':''}"></div>
+      <div>
+        <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:2px">${p.role}</div>
+        <div style="font-weight:700;font-size:.87rem">${p.name}</div>
+        <div style="font-size:.68rem;color:var(--text-2);font-variant-numeric:tabular-nums">${p.schedule}</div>
+      </div>
+    </div>`;
+  });
+  h+=`</div>`;
+
+  h+=`<div class="org-ds-row">`;
+  ORG.dataSupport.forEach(p=>{
+    const a=onShift(p.schedule);
+    h+=`<div class="org-ah-item ${a?'on-shift':''}">
+      <div class="org-mini-dot" style="width:9px;height:9px;background:${a?'#22c55e':'rgba(255,255,255,0.15)'}${a?';box-shadow:0 0 7px rgba(34,197,94,.4)':''}"></div>
+      <div>
+        <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:2px">Data Support · ${p.location}</div>
+        <div style="font-weight:700;font-size:.87rem">${p.name}</div>
+        <div style="font-size:.68rem;color:var(--text-2);font-variant-numeric:tabular-nums">${p.schedule}</div>
+      </div>
+    </div>`;
+  });
+  h+=`</div>`;
+
+  h+=`</div></div>`;
+  el.innerHTML=h;
+}
+
+// ═══════════════════════════════════════════════════════
+// VIEW SWITCH
+// ═══════════════════════════════════════════════════════
+
+function switchView(v){
+  curView=v;
+  document.getElementById('cardsView').classList.toggle('hidden',v!=='cards');
+  document.getElementById('orgView').classList.toggle('hidden',v!=='org');
+  document.getElementById('vCards').classList.toggle('active',v==='cards');
+  document.getElementById('vOrg').classList.toggle('active',v==='org');
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER ALL
+// ═══════════════════════════════════════════════════════
+
+function render(){ renderCards(); renderOrg(); }
+
+// ═══════════════════════════════════════════════════════
+// EVENTS
+// ═══════════════════════════════════════════════════════
+
+document.getElementById('searchInput').addEventListener('input',e=>{ query=e.target.value; render(); });
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+
+(function init(){
+  tick(); renderStats(); renderNav(); render();
+  setInterval(tick, 1000);
+  setInterval(()=>{ renderStats(); render(); }, 60000);
+})();
+</script>
+</body>
+</html>

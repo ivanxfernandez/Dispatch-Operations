@@ -608,12 +608,18 @@ function renderCards(){
   let h='';
 
   if(curTab==='all'){
-    const ldrs=[...ORG.leads, ORG.supervisor, ...ORG.dataSupport].filter(visible);
+    const ldrs=[...ORG.leads, ORG.supervisor].filter(visible);
     if(ldrs.length){
       h+=`<div class="sec"><span class="sec-label">Leadership &amp; Leads</span><div class="sec-line"></div></div><div class="cards-row">`;
       ORG.leads.forEach(l=>{ if(visible(l)) h+=pcardHTML(l, tagHTML(l.programs)); });
       if(visible(ORG.supervisor)) h+=pcardHTML(ORG.supervisor);
-      ORG.dataSupport.forEach(p=>{ if(visible(p)) h+=pcardHTML(p); });
+      h+=`</div>`;
+    }
+
+    const ds=ORG.dataSupport.filter(visible);
+    if(ds.length){
+      h+=`<div class="sec"><span class="sec-label">Data Support</span><div class="sec-line"></div></div><div class="cards-row">`;
+      ds.forEach(p=>{ h+=pcardHTML(p); });
       h+=`</div>`;
     }
 

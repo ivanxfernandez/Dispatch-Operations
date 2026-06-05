@@ -534,54 +534,54 @@ const PROGS = {
 };
 
 const ORG = {
-  supervisor: { id:'sup',  name:'Supervisor',       role:'Supervisor',     schedule:'7am - 4pm' },
+  supervisor: { id:'sup',  name:'Supervisor',       role:'Supervisor',     schedule:'07:00 - 16:00' },
   dataSupport: [
-    { id:'flor',  name:'Flor Pineda',      role:'Data Support', location:'San Diego',  schedule:'12pm - 8pm' },
-    { id:'fflo',  name:'Fernando Flores',  role:'Data Support', location:'Long Beach', schedule:'12pm - 8pm' },
+    { id:'flor',  name:'Flor Pineda',      role:'Data Support', location:'San Diego',  schedule:'13:00 - 21:00' },
+    { id:'fflo',  name:'Fernando Flores',  role:'Data Support', location:'Long Beach', schedule:'12:00 - 20:00' },
   ],
   leads: [
-    { id:'ldr1', name:'Fernando Rivera', role:'Dispatch Lead', schedule:'5am - 2pm',    programs:['sdva','nctd'] },
-    { id:'ldr2', name:'Rene Ramos',      role:'Dispatch Lead', schedule:'9:30am - 6pm', programs:['lbva'] },
-    { id:'ldr3', name:'Ivan Lopez',      role:'Dispatch Lead', schedule:'8am - 5pm',    programs:['stpa','fhc'] },
+    { id:'ldr1', name:'Fernando Rivera', role:'Dispatch Lead', schedule:'05:00 - 14:00', programs:['sdva','nctd'] },
+    { id:'ldr2', name:'Rene Ramos',      role:'Dispatch Lead', schedule:'09:30 - 18:00', programs:['lbva'] },
+    { id:'ldr3', name:'Ivan Lopez',      role:'Dispatch Lead', schedule:'08:00 - 17:00', programs:['stpa','fhc'] },
   ],
   programs: {
     sdva: {
       lead: 'Fernando Rivera',
-      dispatchers: [ { id:'cacos', name:'Carlos Acosta',  role:'Dispatcher',   schedule:'7:30am - 4:30pm' } ],
-      support:     [ { id:'will',  name:'William Veliz',  role:'Support Team', schedule:'7:30am - 4:30pm' } ],
+      dispatchers: [ { id:'cacos', name:'Carlos Acosta',  role:'Dispatcher',   schedule:'07:30 - 16:30' } ],
+      support:     [ { id:'will',  name:'William Veliz',  role:'Support Team', schedule:'07:30 - 16:30' } ],
     },
     nctd: {
       lead: 'Fernando Rivera',
-      dispatchers: [ { id:'rcast', name:'Rene Castro',    role:'Dispatcher',   schedule:'12pm - 8pm' } ],
-      support:     [ { id:'will',  name:'William Veliz',  role:'Support Team', schedule:'7:30am - 4:30pm' } ],
+      dispatchers: [ { id:'rcast', name:'Rene Castro',    role:'Dispatcher',   schedule:'09:45 - 18:45' } ],
+      support:     [ { id:'will',  name:'William Veliz',  role:'Support Team', schedule:'07:30 - 16:30' } ],
     },
     lbva: {
       lead: 'Rene Ramos',
       dispatchers: [
-        { id:'anth', name:'Anthony Gomez',    role:'Dispatcher', schedule:'6am - 2:30pm' },
-        { id:'quin', name:'Quinesha Pimpton', role:'Dispatcher', schedule:'10:30am - 7pm' },
+        { id:'anth', name:'Anthony Gomez',    role:'Dispatcher', schedule:'06:00 - 14:30' },
+        { id:'quin', name:'Quinesha Pimpton', role:'Dispatcher', schedule:'10:30 - 19:00' },
       ],
       support: [
-        { id:'andr', name:'Andre Samayoa',  role:'Support Team', schedule:'6am - 3:30pm' },
-        { id:'mari', name:'Mario Martinez', role:'Support Team', schedule:'10am - 7pm' },
+        { id:'andr', name:'Andre Samayoa',  role:'Support Team', schedule:'06:00 - 15:30' },
+        { id:'mari', name:'Mario Martinez', role:'Support Team', schedule:'10:00 - 19:00' },
       ],
     },
     stpa: {
       lead: 'Ivan Lopez',
       dispatchers: [
-        { id:'clau', name:'Claudia De La Cruz',  role:'Dispatcher', schedule:'6am - 2pm' },
-        { id:'jacq', name:'Jacquie Marroquin',   role:'Dispatcher', schedule:'10am - 7pm' },
+        { id:'clau', name:'Claudia De La Cruz',  role:'Dispatcher', schedule:'06:00 - 14:00' },
+        { id:'jacq', name:'Jacquie Marroquin',   role:'Dispatcher', schedule:'09:00 - 18:00' },
       ],
-      support: [ { id:'alej', name:'Alejandro Jerez', role:'Support Team', schedule:'8am - 4:30pm' } ],
+      support: [ { id:'alej', name:'Alejandro Jerez', role:'Support Team', schedule:'15:00 - 21:00' } ],
     },
     fhc: {
       lead: 'Ivan Lopez',
-      dispatchers: [ { id:'susa', name:'Susan Marroquin', role:'Dispatcher', schedule:'7:30am - 4pm' } ],
-      support:     [ { id:'alej', name:'Alejandro Jerez', role:'Support Team', schedule:'8am - 4:30pm' } ],
+      dispatchers: [ { id:'susa', name:'Susan Marroquin', role:'Dispatcher', schedule:'07:00 - 16:00' } ],
+      support:     [ { id:'alej', name:'Alejandro Jerez', role:'Support Team', schedule:'15:00 - 21:00' } ],
     },
   },
-  closing:   { id:'luca',  name:'Luca Fajardo',  role:'Closing Dispatch',  schedule:'4:30pm - 10pm' },
-  overnight: { id:'maria', name:'Maria Sanchez', role:'Overnight Dispatch', schedule:'9pm - 5:30am' },
+  closing:   { id:'luca',  name:'Luca Fajardo',  role:'Closing Dispatch',  schedule:'16:30 - 22:00' },
+  overnight: { id:'maria', name:'Maria Sanchez', role:'Overnight Dispatch', schedule:'21:00 - 05:30' },
 };
 
 // ═══════════════════════════════════════════════════════
@@ -589,13 +589,10 @@ const ORG = {
 // ═══════════════════════════════════════════════════════
 
 function toMin(s) {
-  s = s.trim().toLowerCase();
-  const m = s.match(/^(\d+)(?::(\d+))?\s*(am|pm)$/);
+  s = s.trim();
+  const m = s.match(/^(\d{1,2}):(\d{2})$/);
   if (!m) return null;
-  let h = +m[1], min = +(m[2]||0), p = m[3];
-  if (p==='pm' && h!==12) h+=12;
-  if (p==='am' && h===12) h=0;
-  return h*60+min;
+  return +m[1]*60 + +m[2];
 }
 
 function onShift(sched) {

@@ -384,6 +384,55 @@ body{
 .empty h3{font-size:.92rem;color:var(--text-2);margin-bottom:6px;font-weight:600}
 .hidden{display:none!important}
 
+/* ── ROLE INFO BUTTON ────────────────────────────────── */
+.info-btn{
+  width:18px;height:18px;border-radius:50%;flex-shrink:0;
+  background:var(--s3);border:var(--hair) solid var(--border-2);
+  color:var(--text-3);font-family:var(--font-mono);font-size:.6rem;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s,border-color .15s;line-height:1;
+}
+.info-btn:hover{background:var(--s2);color:var(--text);border-color:var(--accent-line)}
+
+/* ── ROLE PANEL ──────────────────────────────────────── */
+.role-panel{
+  position:fixed;z-index:200;width:310px;max-height:82vh;overflow-y:auto;
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  background:var(--s2);border:var(--hair) solid var(--border-2);border-radius:var(--r-lg);
+  padding:18px;box-shadow:0 20px 56px -8px rgba(0,0,0,.55);display:none;
+  pointer-events:none;
+}
+.role-panel.open{pointer-events:auto}
+.role-panel.open{display:block}
+.rp-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:8px}
+.rp-title{font-size:.85rem;font-weight:600;color:var(--text)}
+.rp-sub{font-size:.68rem;color:var(--text-3);margin-top:2px}
+.rp-close{
+  background:none;border:none;color:var(--text-3);cursor:pointer;
+  font-size:1rem;line-height:1;padding:0;flex-shrink:0;
+}
+.rp-close:hover{color:var(--text)}
+.rp-tabs{display:flex;gap:2px;background:var(--s3);border:var(--hair) solid var(--border);border-radius:var(--r-sm);padding:2px;margin-bottom:14px}
+.rp-tab{
+  flex:1;border:none;background:none;cursor:pointer;font-family:var(--font-mono);
+  font-size:.58rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text-3);padding:5px 4px;border-radius:calc(var(--r-sm) - 2px);
+  transition:color .15s,background .15s;white-space:nowrap;
+}
+.rp-tab:hover{color:var(--text-2)}
+.rp-tab.on{background:var(--s1);color:var(--text);box-shadow:var(--shadow-sm)}
+.rp-pane{display:none}
+.rp-pane.on{display:block}
+.rp-purpose{font-size:.76rem;color:var(--text-2);line-height:1.6}
+.rp-list{list-style:none;padding:0}
+.rp-list li{
+  font-size:.74rem;color:var(--text-2);line-height:1.5;
+  padding:5px 0 5px 13px;position:relative;
+  border-bottom:var(--hair) solid var(--border);
+}
+.rp-list li:last-child{border-bottom:none}
+.rp-list li::before{content:'·';position:absolute;left:0;color:var(--text-3);font-weight:700}
+
 @media (max-width:760px){
   .hdr{height:auto;padding:11px 14px;flex-wrap:wrap;gap:10px}
   .main,.stats-bar,.nav{padding-left:14px;padding-right:14px}
@@ -506,6 +555,58 @@ const ORG = {
   overnight:{ id:'maria', name:'Maria Sanchez', role:'Overnight Dispatch', schedule:'21:00 - 06:00' },
 };
 
+/* ═══════════════════════ ROLE DEFINITIONS ═══════════════════════ */
+const ROLE_DEFS={
+  'Dispatch Manager':{
+    purpose:'Provide strategic oversight of all dispatch operations while ensuring service performance, staffing alignment, accountability, and continuous improvement.',
+    responsibilities:['Establish department goals and operational standards.','Oversee all dispatch programs and staffing plans.','Monitor KPI performance and service outcomes.','Lead operational meetings and escalation management.','Approve process improvements and workflow changes.','Conduct coaching, development, and corrective actions.','Support client relationships and operational communication.','Ensure all teams remain aligned with expectations.'],
+    ownership:['Department performance','Staffing strategy','Escalations','SOP development','Operational execution'],
+    success:['OTP performance','Reduced service failures','Team development','Program stability'],
+  },
+  'Supervisor':{
+    purpose:'Support daily execution by monitoring operations, coaching staff, and maintaining accountability.',
+    responsibilities:['Monitor live dispatch performance.','Audit communication and trip execution.','Support service recovery efforts.','Review delays and operational concerns.','Coach dispatch staff.','Support schedule and workload balancing.','Escalate issues when necessary.'],
+    ownership:['Daily execution','Accountability','Coaching','Service recovery'],
+    success:['Reduced escalations','Improved response times','Dispatch compliance'],
+  },
+  'Dispatch Lead':{
+    purpose:'Own assigned program operations and provide leadership, decision-making, and support.',
+    responsibilities:['Oversee assigned program activity.','Review assignments and service flow.','Monitor same-day operational changes.','Support dispatch decision-making.','Ensure communication standards are followed.','Coach and support dispatchers.'],
+    ownership:['Program performance','Assignment quality','Service continuity'],
+    success:['Program OTP','Reduced operational gaps'],
+  },
+  'Dispatcher':{
+    purpose:'Execute transportation operations and maintain service performance.',
+    responsibilities:['Assign and manage trips.','Dispatch drivers.','Monitor service execution.','Manage same-day scheduling adjustments.','Execute recovery plans.','Update RouteGenie and VetRide.','Maintain documentation.'],
+    ownership:['Driver assignments','Trip completion','Schedule execution'],
+    success:['Trip completion','Assignment efficiency','Delay reduction'],
+  },
+  'Support Team':{
+    purpose:'Support dispatch operations through communication, monitoring, follow-up, and operational continuity.',
+    responsibilities:['Monitor VetRide for same-day add-ons.','Monitor dispatch queues.','Identify urgent operational requests.','Monitor dispatch emails.','Answer inbound calls and route requests appropriately.','Contact passengers with ETA updates.','Complete courtesy delay calls.','Relay updates and operational changes to drivers.','Maintain dispatch notes and documentation.'],
+    ownership:['VetRide monitoring','Email management','Phone coverage','ETA communication','Service follow-up'],
+    success:['Response time','Communication quality','Reduced missed requests'],
+  },
+  'Closing Dispatch':{
+    purpose:'Prepare operations for next-day success while maintaining overnight continuity.',
+    responsibilities:['Review next-day schedules.','Audit manifests.','Confirm staffing readiness.','Monitor overnight operations.','Escalate concerns.','Validate trip setup.'],
+    ownership:['Next-day readiness','Manifest accuracy'],
+    success:['Reduced morning corrections','Improved preparation'],
+  },
+  'Overnight Dispatch':{
+    purpose:'Prepare operations for next-day success while maintaining overnight continuity.',
+    responsibilities:['Review next-day schedules.','Audit manifests.','Confirm staffing readiness.','Monitor overnight operations.','Escalate concerns.','Validate trip setup.'],
+    ownership:['Next-day readiness','Manifest accuracy'],
+    success:['Reduced morning corrections','Improved preparation'],
+  },
+  'Data Support':{
+    purpose:'Maintain accurate trip setup and operational data to support efficient dispatch execution.',
+    responsibilities:['Enter and update trip information.','Review imports and data accuracy.','Validate required trip information.','Prepare schedules for dispatch review.','Review trip readiness.','Audit records and correct discrepancies.','Escalate missing information.','Support corrections, reporting, and operational data.'],
+    ownership:['Data integrity','Trip setup','Manifest readiness'],
+    success:['Data accuracy','Reduced corrections','Operational readiness'],
+  },
+};
+
 /* ═══════════════════════ SHIFT LOGIC ═══════════════════════ */
 function toMin(s){ const m=s.trim().match(/^(\d{1,2}):(\d{2})$/); return m? +m[1]*60 + +m[2] : null; }
 function onShift(sched){
@@ -576,6 +677,11 @@ function matches(p){
 function visible(p){ return matches(p) && (!filterOn || onShift(p.schedule)); }
 
 /* ═══════════════════════ TEMPLATES ═══════════════════════ */
+function infoBtn(role,name){
+  if(!ROLE_DEFS[role]) return '';
+  const r=role.replace(/'/g,"\\'"), n=name.replace(/'/g,"\\'");
+  return `<button class="info-btn" onclick="openRole('${r}','${n}',event)" title="Role definition">i</button>`;
+}
 function pcardHTML(p, tags){
   const a=onShift(p.schedule);
   return `<div class="pcard ${a?'on':''}">
@@ -586,7 +692,7 @@ function pcardHTML(p, tags){
       <div class="psched">${p.schedule}</div>
       ${tags?`<div class="ptags">${tags}</div>`:''}
     </div>
-    <div class="pcard-r">${dot(a)}</div>
+    <div class="pcard-r">${dot(a)}${infoBtn(p.role,p.name)}</div>
   </div>`;
 }
 function sitemHTML(p){
@@ -598,7 +704,7 @@ function sitemHTML(p){
       <div class="srole">${p.role}</div>
       <div class="ssched">${p.schedule}</div>
     </div>
-    ${dot(a)}
+    ${dot(a)}${infoBtn(p.role,p.name)}
   </div>`;
 }
 
@@ -762,6 +868,43 @@ function setDensity(d){
   localStorage.setItem(LS('density'),d);
 }
 
+/* ═══════════════════════ ROLE PANEL ═══════════════════════ */
+function openRole(role, name, event){
+  event.stopPropagation();
+  const def=ROLE_DEFS[role]; if(!def) return;
+  const li=arr=>arr.map(i=>`<li>${i}</li>`).join('');
+  const panel=document.getElementById('rolePanel');
+  panel.innerHTML=`
+    <div class="rp-hdr">
+      <div><div class="rp-title">${role}</div><div class="rp-sub">${name}</div></div>
+      <button class="rp-close" onclick="closeRole()">✕</button>
+    </div>
+    <div class="rp-tabs">
+      <button class="rp-tab on" onclick="rpTab(this,0)">Purpose</button>
+      <button class="rp-tab" onclick="rpTab(this,1)">Duties</button>
+      <button class="rp-tab" onclick="rpTab(this,2)">Ownership</button>
+      <button class="rp-tab" onclick="rpTab(this,3)">Success</button>
+    </div>
+    <div class="rp-pane on"><p class="rp-purpose">${def.purpose}</p></div>
+    <div class="rp-pane"><ul class="rp-list">${li(def.responsibilities)}</ul></div>
+    <div class="rp-pane"><ul class="rp-list">${li(def.ownership)}</ul></div>
+    <div class="rp-pane"><ul class="rp-list">${li(def.success)}</ul></div>
+  `;
+  const btn=event.currentTarget, rect=btn.getBoundingClientRect();
+  const w=310, m=8;
+  let left=rect.right+m; if(left+w>window.innerWidth) left=rect.left-w-m; if(left<8) left=8;
+  let top=rect.top; if(top+520>window.innerHeight) top=Math.max(8,window.innerHeight-520);
+  panel.style.left=left+'px'; panel.style.top=top+'px';
+  panel.classList.add('open');
+}
+function rpTab(btn, idx){
+  const panel=document.getElementById('rolePanel');
+  panel.querySelectorAll('.rp-tab').forEach((b,i)=>b.classList.toggle('on',i===idx));
+  panel.querySelectorAll('.rp-pane').forEach((p,i)=>p.classList.toggle('on',i===idx));
+}
+function closeRole(){ document.getElementById('rolePanel').classList.remove('open'); }
+document.addEventListener('click',e=>{ if(!document.getElementById('rolePanel').contains(e.target) && !e.target.classList.contains('info-btn')) closeRole(); });
+
 /* ═══════════════════════ EVENTS ═══════════════════════ */
 document.getElementById('searchInput').addEventListener('input',e=>{ query=e.target.value; render(); });
 document.getElementById('onShiftBtn').addEventListener('click',function(){
@@ -782,5 +925,6 @@ document.getElementById('densityBtn').addEventListener('click',()=> setDensity(r
   setInterval(()=>{ renderStats(); render(); },30000);
 })();
 </script>
+<div class="role-panel" id="rolePanel"></div>
 </body>
 </html>

@@ -458,7 +458,7 @@ function renderRoster(now){
     if(p.endDate) extra=`<div class="wk">Last day ${fmtDate(p.endDate)}</div>`;
     if(p.open) extra=`<div class="wk">${openNote(p,now)}</div>`;
     h+=`<tr><td class="nmcell" data-id="${id}">${displayName(p)}${extra}</td><td>${p.role}</td><td>${(progsOf[id]||[]).join(', ')}</td>
-      <td class="t">${today||'Off'}</td><td class="wk">${typeof p.schedule==='string'?'Every day':weekLabel(p)}${p.note?`<br>${p.note}`:''}</td>
+      <td class="t">${today||'Off'}</td><td class="wk">${typeof p.schedule==='string'?'':weekLabel(p)}${p.note?`<br>${p.note}`:''}</td>
       <td>${p.open?'<span class="st-off">Hiring</span>':on?'<span class="st-on">On shift</span>':'<span class="st-off">Off</span>'}</td></tr>`;
   });
   if(!rows.length) h+=`<tr><td colspan="6" class="wk">Nobody matches these filters.</td></tr>`;
@@ -530,7 +530,7 @@ function openPerson(id){
   d.innerHTML=`<button class="x" id="dx">Close</button>
     <h3>${displayName(p)}</h3>
     <p>${p.role}${p.location?` · ${p.location}`:''}</p>
-    <h4>Hours (PT)</h4><p class="t">${typeof p.schedule==='string'?p.schedule+' every day':weekLabel(p)}</p>
+    <h4>Hours (PT)</h4><p class="t">${typeof p.schedule==='string'?p.schedule:weekLabel(p)}</p>
     ${p.note?`<p>${p.note}</p>`:''}
     ${p.endDate?`<p><b>Last day: ${fmtDate(p.endDate,{weekday:'long',month:'long',day:'numeric'})}</b></p>`:''}
     ${p.open?`<p><b>${openNote(p,now)}</b></p>`:''}

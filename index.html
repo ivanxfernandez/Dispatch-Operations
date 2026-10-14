@@ -198,9 +198,11 @@ footer{color:var(--ink-3);font-size:12px;padding:20px 0 40px}
 
 <script>
 /* ═══════════ DATA ═══════════
-   schedule: "HH:MM - HH:MM", or by day: { default:"...", sat:"...", sun:null }  (null = off that day)
+   schedule: "HH:MM - HH:MM", or by day: { default:"...", sat:"...", sun:null }
+             (by day: default = Mon–Fri; a weekend day only counts when it's listed; null = off)
    endDate:  last day worked (YYYY-MM-DD, Pacific) — hidden after that
-   open:     unfilled position */
+   open:     unfilled position
+   away:     temporarily out (vacation, leave) — shown, never counted as on shift */
 const PROGS = {
   sdva:{ name:'San Diego VA',         short:'SDVA' },
   nctd:{ name:'NCTD',                 short:'NCTD' },
@@ -215,7 +217,7 @@ const STAFF = {
   ldr2:  { name:'Rene Ramos',         role:'Dispatch Lead',      schedule:'09:30 - 18:00' },
   ldr3:  { name:'Ivan Lopez',         role:'Dispatch Lead',      schedule:'07:00 - 19:00' },
 
-  flor:  { name:'Flor Pineda',        role:'Data Support', location:'San Diego',  schedule:'13:00 - 21:30' },
+  flor:  { name:'Flor Pineda',        role:'Data Support', location:'San Diego',  schedule:'13:00 - 21:30', away:'On vacation' },
   cflo:  { name:'Carlos Flores',      role:'Data Support', location:'Long Beach',
            schedule:{ default:'13:00 - 21:30', sat:'07:00 - 15:00', sun:null }, note:'Sun: enters schedules only' },
 
@@ -227,18 +229,21 @@ const STAFF = {
            schedule:{ default:'07:30 - 16:30', sat:null, sun:'05:45 - 14:00' } },
 
   anth:  { name:'Anthony Gomez',      role:'Dispatcher',   schedule:'06:00 - 14:30' },
-  andr:  { name:'Andre Samayoa',      role:'Support Team', schedule:'06:00 - 15:30' },
-  mari:  { name:'Mario Martinez',     role:'Support Team', schedule:'10:00 - 19:00' },
+  andr:  { name:'Andre Samayoa',      role:'Support Team', schedule:{ default:'06:00 - 15:30', sun:'14:45 - 22:00' } },
+  mari:  { name:'Mario Martinez',     role:'Support Team',
+           schedule:{ default:'10:00 - 19:30', fri:'12:00 - 21:30', sat:'21:45 - 06:00', sun:null } },
+  jpar:  { name:'Jonathan Paredes',   role:'Support Team',
+           schedule:{ default:'09:00 - 18:00', sat:null, sun:null } },
 
   clau:  { name:'Claudia De La Cruz', role:'Dispatcher',   schedule:'06:00 - 14:00' },
-  jacq:  { name:'Jacquie Marroquin',  role:'Dispatcher',   schedule:'09:00 - 18:00' },
+  jacq:  { name:'Jacquie Marroquin',  role:'Dispatcher',   schedule:{ default:'09:00 - 18:00', sat:'14:45 - 22:00' } },
   susa:  { name:'Susan Marroquin',    role:'Dispatcher',   schedule:'07:00 - 17:00' },
   fhcOpen:{ open:true, name:'Open position', role:'Dispatcher', title:'Part-time dispatcher', interview:'2026-10-14',
            schedule:'06:00 - 12:00' },
   alej:  { name:'Alejandro Jerez',    role:'Support Team', schedule:'12:00 - 20:00' },
 
   luca:  { name:'Luca Fajardo',       role:'Closing Dispatch',   schedule:'16:30 - 22:00' },
-  maria: { name:'Maria Sanchez',      role:'Overnight Dispatch', schedule:'21:00 - 06:00' },
+  maria: { name:'Maria Sanchez',      role:'Overnight Dispatch', schedule:{ default:'21:00 - 06:00', sun:'21:45 - 06:00' } },
 };
 
 const ORG = {
@@ -246,7 +251,7 @@ const ORG = {
   programs:{
     sdva:{ lead:'ldr1', dispatchers:['cacos'],        support:['will','willOpen'] },
     nctd:{ lead:'ldr1', dispatchers:['rcast'],        support:['will','willOpen'] },
-    lbva:{ lead:'ldr2', dispatchers:['anth'],         support:['andr','mari'] },
+    lbva:{ lead:'ldr2', dispatchers:['anth'],         support:['andr','mari','jpar'] },
     stpa:{ lead:'ldr3', dispatchers:['clau','jacq'],  support:['alej'] },
     fhc: { lead:'ldr3', dispatchers:['susa','fhcOpen'], support:['alej'] },
   },
@@ -329,9 +334,11 @@ function parse(s){ if(!s) return null; const p=s.split(/\s*[-–]\s*/); if(p.len
 function schedOn(p,dow){
   const sc=p.schedule;
   if(typeof sc==='string') return sc;
-  return dow in sc ? sc[dow] : sc.default;
+  if(dow in sc) return sc[dow];
+  return ['sat','sun'].includes(dow) ? null : sc.default;   // weekends only when listed
 }
 function onShift(p,now){
+  if(p.away) return false;
   const t=parse(schedOn(p,now.dow));
   if(t && (t.e>t.s ? now.min>=t.s && now.min<t.e : now.min>=t.s)) return true;
   const y=parse(schedOn(p,prevDow(now.dow)));           // overnight shift that started yesterday
@@ -341,9 +348,11 @@ function active(p,now){ return !p.endDate || now.date<=p.endDate; }
 function weekLabel(p){
   const sc=p.schedule; if(typeof sc==='string') return sc;
   const order=['mon','tue','wed','thu','fri','sat','sun'];
-  const vals=order.map(d=> d in sc ? sc[d] : sc.default);
+  const vals=order.map(d=> schedOn(p,d));
+  const known=order.map(d=> d in sc || !['sat','sun'].includes(d));
   const out=[]; let i=0;
-  while(i<7){ let j=i; while(j+1<7 && vals[j+1]===vals[i]) j++;
+  while(i<7){ if(!known[i]){ i++; continue; }
+    let j=i; while(j+1<7 && known[j+1] && vals[j+1]===vals[i]) j++;
     const days = i===j ? DAY_NAMES[order[i]] : `${DAY_NAMES[order[i]]}–${DAY_NAMES[order[j]]}`;
     out.push(`${days} ${vals[i]||'off'}`); i=j+1; }
   return out.join(' · ');
@@ -409,6 +418,7 @@ function tlRow(id,now){
   let tags='';
   if(p.endDate) tags+=`<span class="tag leave">Last day ${fmtDate(p.endDate,{weekday:'short',month:'numeric',day:'numeric'})}</span>`;
   if(p.open) tags+=`<span class="tag open">Open</span>`;
+  if(p.away) tags+=`<span class="tag leave">${p.away}</span>`;
   const sub = p.open ? [p.role, openNote(p,now)].filter(Boolean).join(' · ')
                      : [p.role, p.location, p.note].filter(Boolean).join(' · ');
   return `<div class="tl-row">
@@ -457,9 +467,10 @@ function renderRoster(now){
     let extra='';
     if(p.endDate) extra=`<div class="wk">Last day ${fmtDate(p.endDate)}</div>`;
     if(p.open) extra=`<div class="wk">${openNote(p,now)}</div>`;
+    if(p.away) extra=`<div class="wk">${p.away}</div>`;
     h+=`<tr><td class="nmcell" data-id="${id}">${displayName(p)}${extra}</td><td>${p.role}</td><td>${(progsOf[id]||[]).join(', ')}</td>
       <td class="t">${today||'Off'}</td><td class="wk">${typeof p.schedule==='string'?'':weekLabel(p)}${p.note?`<br>${p.note}`:''}</td>
-      <td>${p.open?'<span class="st-off">Hiring</span>':on?'<span class="st-on">On shift</span>':'<span class="st-off">Off</span>'}</td></tr>`;
+      <td>${p.open?'<span class="st-off">Hiring</span>':p.away?'<span class="st-off">Away</span>':on?'<span class="st-on">On shift</span>':'<span class="st-off">Off</span>'}</td></tr>`;
   });
   if(!rows.length) h+=`<tr><td colspan="6" class="wk">Nobody matches these filters.</td></tr>`;
   h+=`</tbody></table></div>`;
@@ -470,7 +481,7 @@ function renderRoster(now){
 function renderOrg(now){
   const li=(id,extra='')=>{ const p=STAFF[id]; if(!active(p,now)) return '';
     const hrs = typeof p.schedule==='string' ? p.schedule : weekLabel(p);
-    return `<li><span class="who" data-id="${id}">${displayName(p)}</span> <span class="what">· ${p.role}${p.open?` (${openNote(p,now)})`:''}</span><span class="hrs t">${hrs}</span>${extra}</li>`; };
+    return `<li><span class="who" data-id="${id}">${displayName(p)}</span> <span class="what">· ${p.role}${p.open?` (${openNote(p,now)})`:''}${p.away?` (${p.away.toLowerCase()})`:''}</span><span class="hrs t">${hrs}</span>${extra}</li>`; };
   let h=`<div class="org"><ul><li><span class="who">Dispatch Manager</span><ul>${li('sup',
     `<ul>${Object.entries(ORG.leads).map(([lid,ps])=>li(lid,
       `<ul>${ps.map(pid=>{ const pg=ORG.programs[pid];
@@ -534,6 +545,7 @@ function openPerson(id){
     ${p.note?`<p>${p.note}</p>`:''}
     ${p.endDate?`<p><b>Last day: ${fmtDate(p.endDate,{weekday:'long',month:'long',day:'numeric'})}</b></p>`:''}
     ${p.open?`<p><b>${openNote(p,now)}</b></p>`:''}
+    ${p.away?`<p><b>${p.away}</b></p>`:''}
     ${def?`<h4>What the role is for</h4><p>${def.purpose}</p><h4>Day to day</h4>${list(def.duties)}<h4>Owns</h4>${list(def.owns)}<h4>Measured by</h4>${list(def.measured)}`:''}`;
   d.classList.add('open'); d.setAttribute('aria-hidden','false');
   document.getElementById('dx').onclick=closePerson;

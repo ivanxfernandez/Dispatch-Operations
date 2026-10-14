@@ -1,930 +1,588 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark" data-style="control" data-density="balanced">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dispatch Operations Board</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>Dispatch Schedule</title>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
-/* ════════════════════════════════════════════════════════════
-   TOKENS
-   ════════════════════════════════════════════════════════════ */
 :root{
-  --font-sans:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
-  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 
-  /* shape (overridden per style) */
-  --r-sm:5px; --r-md:7px; --r-lg:9px;
-  --hair:1px;
+  --bg:#f4f3ef;
+  --paper:#ffffff;
+  --ink:#1f1e1b;
+  --ink-2:#5f5d57;
+  --ink-3:#8f8c84;
+  --line:#e2dfd7;
+  --line-2:#cfcbc1;
+  --grid:#efede7;
 
-  /* density (overridden per density) */
-  --row-py:11px; --row-px:13px; --gap:10px; --sec-gap:26px;
-  --fs-name:.875rem; --fs-meta:.69rem; --av:38px;
-
-  /* accent — single interactive accent (per style) */
-  --accent:#36c184;
-  --accent-weak:rgba(54,193,132,.14);
-  --accent-line:rgba(54,193,132,.45);
-
-  /* semantic status */
-  --ok:#36c184;
-  --ok-weak:rgba(54,193,132,.13);
-  --ok-line:rgba(54,193,132,.40);
+  --on:#2f7a4f;
+  --on-ink:#ffffff;
+  --sched:#dcd8cd;
+  --sched-ink:#3c3a35;
+  --open:#b26b00;
+  --open-bg:#fbf1e1;
+  --now:#c2412d;
+  --warn-bg:#fff6e5;
+  --warn-line:#ecd3a4;
 }
-
-/* ── THEME: DARK ─────────────────────────────────────────── */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#151513; --paper:#1d1d1a; --ink:#ecebe6; --ink-2:#b0aea6; --ink-3:#7d7b74;
+    --line:#2e2d29; --line-2:#3d3c37; --grid:#242420;
+    --on:#3f9a66; --sched:#3a3934; --sched-ink:#dddbd3;
+    --open:#e0a34a; --open-bg:#2a2216; --now:#e5604a; --warn-bg:#2a2216; --warn-line:#4a3a20;
+  }
+}
 :root[data-theme="dark"]{
-  --bg:#0b0e14;
-  --s1:#11151d;       /* base surface */
-  --s2:#161b25;       /* raised */
-  --s3:#1c2230;       /* inset rows */
-  --border:#222a38;
-  --border-2:#2e3849;
-  --text:#e7eaf1;
-  --text-2:#97a1b3;
-  --text-3:#586273;
-  --shadow:0 1px 0 rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
-  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
-}
-/* ── THEME: LIGHT ────────────────────────────────────────── */
-:root[data-theme="light"]{
-  --bg:#eef0f3;
-  --s1:#ffffff;
-  --s2:#ffffff;
-  --s3:#f5f6f8;
-  --border:#e2e5ea;
-  --border-2:#d2d7df;
-  --text:#1a1f29;
-  --text-2:#586377;
-  --text-3:#8c95a6;
-  --shadow:0 1px 0 rgba(16,24,40,.02), 0 10px 26px -16px rgba(16,24,40,.25);
-  --shadow-sm:0 1px 2px rgba(16,24,40,.06);
+  --bg:#151513; --paper:#1d1d1a; --ink:#ecebe6; --ink-2:#b0aea6; --ink-3:#7d7b74;
+  --line:#2e2d29; --line-2:#3d3c37; --grid:#242420;
+  --on:#3f9a66; --sched:#3a3934; --sched-ink:#dddbd3;
+  --open:#e0a34a; --open-bg:#2a2216; --now:#e5604a; --warn-bg:#2a2216; --warn-line:#4a3a20;
 }
 
-/* ════════════════════════════════════════════════════════════
-   STYLE VARIANTS
-   ════════════════════════════════════════════════════════════ */
-/* CONTROL — crisp NOC board, signal green */
-:root[data-style="control"]{
-  --r-sm:5px; --r-md:7px; --r-lg:9px;
-  --accent:#36c184; --accent-weak:rgba(54,193,132,.14); --accent-line:rgba(54,193,132,.45);
-}
-/* MINIMAL — calmer, softer corners, indigo accent */
-:root[data-style="minimal"]{
-  --r-sm:9px; --r-md:13px; --r-lg:18px;
-  --row-py:13px; --row-px:15px; --sec-gap:30px;
-  --accent:#6172f3; --accent-weak:rgba(97,114,243,.14); --accent-line:rgba(97,114,243,.45);
-}
-/* TERMINAL — mono, boxy, amber accent, uppercase */
-:root[data-style="terminal"]{
-  --r-sm:2px; --r-md:3px; --r-lg:3px;
-  --font-sans:'IBM Plex Mono',ui-monospace,monospace;
-  --accent:#e0a92e; --accent-weak:rgba(224,169,46,.15); --accent-line:rgba(224,169,46,.5);
-  --row-py:10px;
-}
-:root[data-style="terminal"][data-theme="dark"]{ --bg:#080a0d; --s1:#0d1014; --s2:#11151b; --s3:#161b22; }
-
-/* ── DENSITY ─────────────────────────────────────────────── */
-:root[data-density="compact"]{
-  --row-py:8px; --row-px:10px; --gap:6px; --sec-gap:20px;
-  --fs-name:.82rem; --fs-meta:.66rem; --av:32px;
-}
-
-/* ════════════════════════════════════════════════════════════
-   BASE
-   ════════════════════════════════════════════════════════════ */
-body{
-  font-family:var(--font-sans);
-  background:var(--bg); color:var(--text);
-  min-height:100vh; -webkit-font-smoothing:antialiased;
-  font-feature-settings:"cv05","ss01";
-}
-.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
-.layout{display:flex;flex-direction:column;min-height:100vh}
-
-/* ════════════════════════════════════════════════════════════
-   HEADER
-   ════════════════════════════════════════════════════════════ */
-.hdr{
-  position:sticky;top:0;z-index:50;
-  background:var(--s1); border-bottom:var(--hair) solid var(--border);
-  padding:0 22px; height:62px;
-  display:flex;align-items:center;justify-content:space-between;gap:16px;
-}
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
-.brand-mark{
-  width:36px;height:36px;border-radius:var(--r-sm);flex-shrink:0;
-  background:var(--s3);border:var(--hair) solid var(--border-2);
-  display:flex;align-items:center;justify-content:center;color:var(--accent);
-}
-.brand h1{font-size:.95rem;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
-.brand p{font-size:.66rem;color:var(--text-3);margin-top:1px;letter-spacing:.02em}
-:root[data-style="terminal"] .brand h1{text-transform:uppercase;letter-spacing:.04em;font-size:.85rem}
-
-.hdr-right{display:flex;align-items:center;gap:14px}
-.live-pill{
-  display:flex;align-items:center;gap:7px;
-  background:var(--ok-weak);border:var(--hair) solid var(--ok-line);
-  color:var(--ok);padding:5px 11px;border-radius:20px;
-  font-size:.64rem;font-weight:600;letter-spacing:.08em;
-}
-:root[data-style="terminal"] .live-pill{border-radius:2px}
-.live-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:blink 2s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-@media (prefers-reduced-motion:reduce){.live-dot{animation:none}}
-
-.clock{text-align:right;line-height:1.15}
-.clock-time{font-family:var(--font-mono);font-size:1.18rem;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
-.clock-date{font-size:.64rem;color:var(--text-3);margin-top:1px}
-
-/* control cluster */
-.ctrls{display:flex;align-items:center;gap:8px}
-.seg{display:flex;background:var(--s3);border:var(--hair) solid var(--border);border-radius:var(--r-sm);padding:2px;gap:2px}
-.seg button{
-  border:none;background:none;cursor:pointer;font-family:inherit;
-  color:var(--text-3);font-size:.7rem;font-weight:600;
-  padding:5px 10px;border-radius:calc(var(--r-sm) - 2px);
-  transition:color .15s,background .15s;letter-spacing:.01em;
-}
-.seg button:hover{color:var(--text-2)}
-.seg button.on{background:var(--s1);color:var(--text);box-shadow:var(--shadow-sm)}
-.icon-btn{
-  width:34px;height:34px;display:flex;align-items:center;justify-content:center;
-  background:var(--s3);border:var(--hair) solid var(--border);border-radius:var(--r-sm);
-  color:var(--text-2);cursor:pointer;transition:color .15s,border-color .15s;
-}
-.icon-btn:hover{color:var(--text);border-color:var(--border-2)}
-
-/* ════════════════════════════════════════════════════════════
-   STATS BAR
-   ════════════════════════════════════════════════════════════ */
-.stats-bar{
-  background:var(--bg);border-bottom:var(--hair) solid var(--border);
-  padding:0 22px;height:44px;display:flex;align-items:center;gap:26px;overflow-x:auto;scrollbar-width:none;
-}
-.stats-bar::-webkit-scrollbar{display:none}
-.stat{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--text-3);white-space:nowrap}
-.stat b{font-family:var(--font-mono);color:var(--text);font-size:.92rem;font-weight:600}
-.stat .ok-num{color:var(--ok)}
-.stat-bar-mini{width:54px;height:5px;border-radius:3px;background:var(--s3);overflow:hidden;border:var(--hair) solid var(--border)}
-.stat-bar-mini > i{display:block;height:100%;background:var(--ok);border-radius:3px}
-.stat-sep{width:var(--hair);height:16px;background:var(--border)}
-
-/* ════════════════════════════════════════════════════════════
-   NAV
-   ════════════════════════════════════════════════════════════ */
-.nav{
-  background:var(--s1);border-bottom:var(--hair) solid var(--border);
-  padding:0 22px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;
-}
-.nav::-webkit-scrollbar{display:none}
-.tab{
-  position:relative;padding:0 15px;height:46px;background:none;border:none;
-  color:var(--text-3);cursor:pointer;font-family:inherit;font-size:.78rem;font-weight:500;
-  white-space:nowrap;display:flex;align-items:center;gap:8px;
-  border-bottom:2px solid transparent;transition:color .15s;
-}
-.tab:hover{color:var(--text-2)}
-.tab.active{color:var(--text);border-bottom-color:var(--accent)}
-.tab-badge{
-  font-family:var(--font-mono);background:var(--s3);color:var(--text-3);
-  padding:1px 6px;border-radius:5px;font-size:.66rem;font-weight:600;border:var(--hair) solid var(--border);
-}
-.tab.active .tab-badge{color:var(--text-2)}
-
-/* ════════════════════════════════════════════════════════════
-   MAIN / TOOLBAR
-   ════════════════════════════════════════════════════════════ */
-.main{padding:20px 22px 48px;flex:1;max-width:1480px;width:100%;margin:0 auto}
-.toolbar{display:flex;gap:9px;margin-bottom:20px;align-items:center;flex-wrap:wrap}
-.search-wrap{flex:1;min-width:200px;position:relative}
-.search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-3)}
-.search{
-  width:100%;padding:9px 12px 9px 34px;background:var(--s1);
-  border:var(--hair) solid var(--border);border-radius:var(--r-sm);
-  color:var(--text);font-size:.8rem;font-family:inherit;outline:none;
-  transition:border-color .15s,box-shadow .15s;
-}
-.search:focus{border-color:var(--accent-line);box-shadow:0 0 0 3px var(--accent-weak)}
-.search::placeholder{color:var(--text-3)}
-.tbtn{
-  padding:9px 14px;background:var(--s1);border:var(--hair) solid var(--border);
-  border-radius:var(--r-sm);color:var(--text-2);cursor:pointer;
-  font-family:inherit;font-size:.75rem;font-weight:500;white-space:nowrap;
-  display:flex;align-items:center;gap:7px;transition:color .15s,border-color .15s,background .15s;
-}
-.tbtn:hover{color:var(--text);border-color:var(--border-2)}
-.tbtn.on{background:var(--ok-weak);border-color:var(--ok-line);color:var(--ok)}
-
-/* ════════════════════════════════════════════════════════════
-   SECTION DIVIDER
-   ════════════════════════════════════════════════════════════ */
-.sec{display:flex;align-items:center;gap:12px;margin-bottom:13px;margin-top:var(--sec-gap)}
-.sec:first-child{margin-top:0}
-.sec-label{
-  font-family:var(--font-mono);font-size:.64rem;font-weight:600;
-  text-transform:uppercase;letter-spacing:.12em;color:var(--text-3);white-space:nowrap;
-}
-.sec-line{flex:1;height:var(--hair);background:var(--border)}
-.sec-count{font-family:var(--font-mono);font-size:.64rem;color:var(--text-3)}
-
-/* ════════════════════════════════════════════════════════════
-   AVATAR / STATUS
-   ════════════════════════════════════════════════════════════ */
-.av{
-  width:var(--av);height:var(--av);border-radius:var(--r-sm);flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--font-mono);font-size:.72rem;font-weight:600;letter-spacing:-.01em;
-  background:var(--s3);color:var(--text-2);border:var(--hair) solid var(--border);
-}
-.av.on{color:var(--ok);border-color:var(--ok-line);background:var(--ok-weak)}
-
-.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--text-3);opacity:.4}
-.sdot.on{background:var(--ok);opacity:1}
-
-.status-tag{
-  display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);
-  font-size:.6rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
-  padding:3px 8px;border-radius:20px;border:var(--hair) solid var(--border);color:var(--text-3);
-}
-:root[data-style="terminal"] .status-tag{border-radius:2px}
-.status-tag.on{color:var(--ok);border-color:var(--ok-line);background:var(--ok-weak)}
-
-/* program code tag */
-.ptag{
-  font-family:var(--font-mono);font-size:.6rem;font-weight:600;letter-spacing:.05em;
-  padding:2px 6px;border-radius:4px;border:var(--hair) solid var(--border-2);color:var(--text-2);
-}
-:root[data-style="terminal"] .ptag{border-radius:2px}
-
-/* ════════════════════════════════════════════════════════════
-   PERSON CARD (leadership / single-program)
-   ════════════════════════════════════════════════════════════ */
-.cards-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:var(--gap)}
-.pcard{
-  background:var(--s1);border:var(--hair) solid var(--border);border-radius:var(--r-md);
-  padding:var(--row-py) var(--row-px);display:flex;align-items:center;gap:12px;
-  box-shadow:var(--shadow-sm);transition:border-color .15s,background .15s;
-}
-.pcard:hover{border-color:var(--border-2)}
-.pcard.on{border-left:2px solid var(--ok-line)}
-.pi{flex:1;min-width:0}
-.pname{font-size:var(--fs-name);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prole{font-size:var(--fs-meta);color:var(--text-2);margin-top:1px}
-.psched{font-family:var(--font-mono);font-size:var(--fs-meta);color:var(--text-3);margin-top:3px;font-variant-numeric:tabular-nums}
-.ptags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
-.pcard-r{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
-
-/* ════════════════════════════════════════════════════════════
-   PROGRAM SECTION
-   ════════════════════════════════════════════════════════════ */
-.prog-section{
-  background:var(--s1);border:var(--hair) solid var(--border);border-radius:var(--r-lg);
-  overflow:hidden;margin-bottom:12px;box-shadow:var(--shadow-sm);
-}
-.prog-hdr{padding:13px 18px;display:flex;align-items:center;gap:13px;border-bottom:var(--hair) solid var(--border);background:var(--s2)}
-.prog-code{
-  font-family:var(--font-mono);font-size:.7rem;font-weight:600;letter-spacing:.04em;
-  padding:4px 9px;border-radius:var(--r-sm);border:var(--hair) solid var(--border-2);
-  color:var(--text);background:var(--s3);flex-shrink:0;
-}
-.prog-meta{min-width:0}
-.prog-title{font-size:.92rem;font-weight:600}
-.prog-lead{font-size:.68rem;color:var(--text-3);margin-top:1px}
-.prog-cov{margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0}
-.cov-txt{font-family:var(--font-mono);font-size:.7rem;font-weight:600;color:var(--text-2);white-space:nowrap}
-.cov-txt b{color:var(--ok)}
-.cov-bar{width:72px;height:6px;border-radius:3px;background:var(--s3);overflow:hidden;border:var(--hair) solid var(--border)}
-.cov-bar > i{display:block;height:100%;background:var(--ok);border-radius:3px;transition:width .3s}
-.prog-grid{padding:13px 18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:var(--gap)}
-
-.sitem{
-  background:var(--s2);border:var(--hair) solid var(--border);border-radius:var(--r-sm);
-  padding:9px 12px;display:flex;align-items:center;gap:11px;transition:border-color .15s,background .15s;
-}
-.sitem:hover{border-color:var(--border-2)}
-.sitem.on{border-left:2px solid var(--ok-line)}
-.sname{font-size:var(--fs-name);font-weight:600}
-.srole{font-size:var(--fs-meta);color:var(--text-2);margin-top:1px}
-.ssched{font-family:var(--font-mono);font-size:var(--fs-meta);color:var(--text-3);margin-top:2px}
-
-/* ════════════════════════════════════════════════════════════
-   AFTER HOURS
-   ════════════════════════════════════════════════════════════ */
-.ah-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:var(--gap)}
-.ah-card{
-  background:var(--s1);border:var(--hair) solid var(--border);border-radius:var(--r-md);
-  padding:14px 16px;box-shadow:var(--shadow-sm);transition:border-color .15s;
-}
-.ah-card.on{border-left:2px solid var(--ok-line)}
-.ah-label{font-family:var(--font-mono);font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:11px}
-.ah-inner{display:flex;align-items:center;gap:11px}
-
-/* ════════════════════════════════════════════════════════════
-   ORG CHART
-   ════════════════════════════════════════════════════════════ */
-.org-scroller{overflow-x:auto;padding-bottom:28px}
-.org-tree{min-width:920px;padding:4px 20px}
-.org-center{display:flex;justify-content:center}
-.org-vline{display:flex;justify-content:center;height:26px}
-.org-vline > div{width:var(--hair);background:var(--border-2)}
-.org-leads-row{display:flex;justify-content:center;gap:34px;position:relative;padding:0 12px}
-.org-leads-row::before{content:'';position:absolute;top:0;left:calc(50% - 245px);width:490px;height:var(--hair);background:var(--border-2)}
-.org-lead-col{display:flex;flex-direction:column;align-items:center}
-.org-lead-col::before{content:'';width:var(--hair);height:26px;background:var(--border-2)}
-
-.org-node{
-  background:var(--s1);border:var(--hair) solid var(--border);border-radius:var(--r-md);
-  padding:12px 15px;text-align:center;min-width:158px;position:relative;
-  box-shadow:var(--shadow-sm);transition:border-color .15s;
-}
-.org-node:hover{border-color:var(--border-2)}
-.org-node.on{border-top:2px solid var(--ok-line)}
-.org-node-dot{position:absolute;top:10px;right:10px;width:7px;height:7px;border-radius:50%;background:var(--text-3);opacity:.4}
-.org-node-dot.on{background:var(--ok);opacity:1}
-.org-nlabel{font-family:var(--font-mono);font-size:.58rem;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3);margin-bottom:4px}
-.org-nname{font-size:.86rem;font-weight:600}
-.org-nsched{font-family:var(--font-mono);font-size:.66rem;color:var(--text-3);margin-top:3px}
-.org-ntags{display:flex;justify-content:center;gap:4px;margin-top:7px;flex-wrap:wrap}
-
-.org-progs{display:flex;justify-content:center;gap:11px;margin-top:26px;flex-wrap:wrap;padding:0 16px}
-.org-prog{
-  flex:1;min-width:182px;max-width:236px;border-radius:var(--r-md);padding:13px 14px;
-  background:var(--s1);border:var(--hair) solid var(--border);box-shadow:var(--shadow-sm);
-}
-.org-prog-name{font-family:var(--font-mono);font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-2);margin-bottom:10px;display:flex;align-items:center;gap:7px}
-.org-prog-name .ptag{margin-left:auto}
-.org-row-sm{display:flex;align-items:center;gap:9px;padding:7px 9px;background:var(--s2);border:var(--hair) solid var(--border);border-radius:var(--r-sm);margin-bottom:5px}
-.org-row-sm:last-child{margin-bottom:0}
-.org-mini-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--text-3);opacity:.4}
-.org-mini-dot.on{background:var(--ok);opacity:1}
-.org-mini-name{font-size:.76rem;font-weight:600}
-.org-mini-sched{font-family:var(--font-mono);font-size:.62rem;color:var(--text-3)}
-.org-supp-sep{font-family:var(--font-mono);font-size:.56rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin:9px 0 5px;padding-left:2px}
-
-.org-ah-row,.org-ds-row{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:26px;padding:0 16px}
-.org-ds-row{margin-top:11px}
-.org-ah-item{
-  background:var(--s1);border:var(--hair) solid var(--border);border-radius:var(--r-md);
-  padding:12px 16px;min-width:190px;display:flex;align-items:center;gap:12px;flex:1;max-width:256px;box-shadow:var(--shadow-sm);
-}
-.org-ah-item.on{border-left:2px solid var(--ok-line)}
-.org-ah-label{font-family:var(--font-mono);font-size:.58rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:2px}
-.org-ah-name{font-weight:600;font-size:.85rem}
-.org-ah-sched{font-family:var(--font-mono);font-size:.66rem;color:var(--text-3)}
-
-/* ════════════════════════════════════════════════════════════
-   MISC
-   ════════════════════════════════════════════════════════════ */
-.empty{text-align:center;padding:54px 20px;color:var(--text-3)}
-.empty h3{font-size:.92rem;color:var(--text-2);margin-bottom:6px;font-weight:600}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.t{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:1280px;margin:0 auto;padding:0 20px}
 .hidden{display:none!important}
+button{font:inherit;color:inherit}
 
-/* ── ROLE INFO BUTTON ────────────────────────────────── */
-.info-btn{
-  width:18px;height:18px;border-radius:50%;flex-shrink:0;
-  background:var(--s3);border:var(--hair) solid var(--border-2);
-  color:var(--text-3);font-family:var(--font-mono);font-size:.6rem;font-weight:600;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:background .15s,color .15s,border-color .15s;line-height:1;
-}
-.info-btn:hover{background:var(--s2);color:var(--text);border-color:var(--accent-line)}
+/* header */
+header{background:var(--paper);border-bottom:1px solid var(--line)}
+.hdr{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding-top:18px;flex-wrap:wrap}
+.hdr h1{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.hdr .sub{color:var(--ink-2);margin-top:2px}
+.clock{text-align:right}
+.clock b{font-family:var(--mono);font-size:22px;font-weight:600}
+.clock span{color:var(--ink-3);margin-left:4px}
+.views{display:flex;gap:22px;margin-top:14px}
+.views button{background:none;border:none;cursor:pointer;padding:8px 0 10px;color:var(--ink-2);border-bottom:2px solid transparent;font-weight:500}
+.views button:hover{color:var(--ink)}
+.views button.on{color:var(--ink);border-bottom-color:var(--ink)}
+.theme{background:none;border:1px solid var(--line-2);border-radius:4px;cursor:pointer;padding:3px 8px;color:var(--ink-2);font-size:12px;margin-left:10px}
 
-/* ── ROLE PANEL ──────────────────────────────────────── */
-.role-panel{
-  position:fixed;z-index:200;width:310px;max-height:82vh;overflow-y:auto;
-  overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
-  background:var(--s2);border:var(--hair) solid var(--border-2);border-radius:var(--r-lg);
-  padding:18px;box-shadow:0 20px 56px -8px rgba(0,0,0,.55);display:none;
-  pointer-events:none;
-}
-.role-panel.open{pointer-events:auto}
-.role-panel.open{display:block}
-.rp-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:8px}
-.rp-title{font-size:.85rem;font-weight:600;color:var(--text)}
-.rp-sub{font-size:.68rem;color:var(--text-3);margin-top:2px}
-.rp-close{
-  background:none;border:none;color:var(--text-3);cursor:pointer;
-  font-size:1rem;line-height:1;padding:0;flex-shrink:0;
-}
-.rp-close:hover{color:var(--text)}
-.rp-tabs{display:flex;gap:2px;background:var(--s3);border:var(--hair) solid var(--border);border-radius:var(--r-sm);padding:2px;margin-bottom:14px}
-.rp-tab{
-  flex:1;border:none;background:none;cursor:pointer;font-family:var(--font-mono);
-  font-size:.58rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
-  color:var(--text-3);padding:5px 4px;border-radius:calc(var(--r-sm) - 2px);
-  transition:color .15s,background .15s;white-space:nowrap;
-}
-.rp-tab:hover{color:var(--text-2)}
-.rp-tab.on{background:var(--s1);color:var(--text);box-shadow:var(--shadow-sm)}
-.rp-pane{display:none}
-.rp-pane.on{display:block}
-.rp-purpose{font-size:.76rem;color:var(--text-2);line-height:1.6}
-.rp-list{list-style:none;padding:0}
-.rp-list li{
-  font-size:.74rem;color:var(--text-2);line-height:1.5;
-  padding:5px 0 5px 13px;position:relative;
-  border-bottom:var(--hair) solid var(--border);
-}
-.rp-list li:last-child{border-bottom:none}
-.rp-list li::before{content:'·';position:absolute;left:0;color:var(--text-3);font-weight:700}
+/* notices */
+.notices{margin:18px 0 0;display:grid;gap:6px}
+.notice{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:4px;padding:8px 12px}
+.notice b{font-weight:600}
 
-@media (max-width:760px){
-  .hdr{height:auto;padding:11px 14px;flex-wrap:wrap;gap:10px}
-  .main,.stats-bar,.nav{padding-left:14px;padding-right:14px}
-  .ctrls{order:3}
-  .clock-time{font-size:1rem}
+/* filters */
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0 12px}
+.progs{display:flex;gap:4px;flex-wrap:wrap}
+.progs button{background:var(--paper);border:1px solid var(--line-2);border-radius:4px;padding:5px 10px;cursor:pointer;color:var(--ink-2)}
+.progs button.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.search{flex:1;min-width:160px;max-width:280px;padding:6px 10px;border:1px solid var(--line-2);border-radius:4px;background:var(--paper);color:var(--ink);font:inherit}
+.chk{display:flex;align-items:center;gap:6px;color:var(--ink-2);cursor:pointer;user-select:none}
+.count{margin-left:auto;color:var(--ink-2)}
+.count b{color:var(--on)}
+
+/* timeline */
+.tl{background:var(--paper);border:1px solid var(--line);border-radius:4px;overflow-x:auto}
+.tl-in{min-width:820px}
+.tl-row{display:grid;grid-template-columns:220px 1fr;border-bottom:1px solid var(--line)}
+.tl-row:last-child{border-bottom:none}
+.tl-name{padding:6px 12px;border-right:1px solid var(--line);min-width:0;cursor:pointer;position:sticky;left:0;z-index:4;background:var(--paper)}
+.tl-name:hover .nm{text-decoration:underline}
+.nm{font-weight:600;display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px}
+.nm > span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.rl{color:var(--ink-3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track{position:relative;height:100%;min-height:42px;
+  background-image:linear-gradient(to right,var(--grid) 1px,transparent 1px);
+  background-size:calc(100% / 24) 100%}
+.bar-s{position:absolute;top:9px;bottom:9px;border-radius:3px;background:var(--sched);color:var(--sched-ink);
+  font-family:var(--mono);font-size:11px;display:flex;align-items:center;padding:0 6px;white-space:nowrap;overflow:hidden}
+.bar-s.on{background:var(--on);color:var(--on-ink)}
+.bar-s.open{background:repeating-linear-gradient(135deg,var(--open-bg) 0 6px,transparent 6px 12px);border:1px dashed var(--open);color:var(--open)}
+.offday{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--ink-3);font-size:12px}
+.nowline{position:absolute;top:0;bottom:0;width:2px;background:var(--now);z-index:2;pointer-events:none}
+.axis .tl-name{cursor:default;color:var(--ink-3);font-size:12px;display:flex;align-items:center}
+.grp .gt{position:sticky;left:12px;display:flex;align-items:baseline;gap:4px 10px;flex-wrap:wrap}
+.grp .cov{position:sticky;right:12px}
+.axis .track{min-height:28px;background:none}
+.axis .hr{position:absolute;top:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.axis .nowtag{position:absolute;top:50%;transform:translate(-50%,-50%);background:var(--now);color:#fff;font-family:var(--mono);font-size:11px;padding:1px 5px;border-radius:3px;z-index:3}
+.grp{display:flex;align-items:baseline;gap:10px;padding:10px 12px 6px;background:var(--bg);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.grp h2{font-size:14px;font-weight:700}
+.grp .meta{color:var(--ink-2);font-size:12px}
+.grp .cov{margin-left:auto;font-size:12px;color:var(--ink-2)}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:0 5px;border-radius:3px;white-space:nowrap}
+.tag.leave{background:var(--warn-bg);color:var(--open);border:1px solid var(--warn-line)}
+.tag.open{background:var(--open-bg);color:var(--open);border:1px dashed var(--open)}
+
+/* roster */
+table{width:100%;border-collapse:collapse;background:var(--paper);border:1px solid var(--line)}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;font-weight:600;color:var(--ink-2);background:var(--bg)}
+td.nmcell{cursor:pointer;font-weight:600}
+td.nmcell:hover{text-decoration:underline}
+.wk{color:var(--ink-3);font-size:12px}
+.st-on{color:var(--on);font-weight:600}
+.st-off{color:var(--ink-3)}
+.tbl-wrap{overflow-x:auto}
+.tbl-wrap table{min-width:640px}
+
+/* org */
+.org{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:16px 20px}
+.org ul{list-style:none;padding-left:22px;border-left:1px solid var(--line-2);margin-left:6px}
+.org > ul{padding-left:0;border-left:none;margin-left:0}
+.org li{padding:4px 0}
+.org .who{font-weight:600}
+.org .what{color:var(--ink-2)}
+.org .hrs{color:var(--ink-3);font-size:12px;margin-left:6px}
+.org .sec{color:var(--ink-3);font-size:12px;margin-top:6px}
+
+/* drawer */
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(380px,100%);background:var(--paper);border-left:1px solid var(--line-2);
+  padding:20px;overflow-y:auto;transform:translateX(100%);transition:transform .18s,visibility .18s;visibility:hidden;z-index:20}
+.drawer.open{transform:none;visibility:visible;box-shadow:-8px 0 24px rgba(0,0,0,.12)}
+.drawer h3{font-size:18px}
+.drawer .x{position:absolute;top:14px;right:14px;background:none;border:1px solid var(--line-2);border-radius:4px;cursor:pointer;padding:2px 8px;color:var(--ink-2)}
+.drawer h4{font-size:12px;color:var(--ink-3);font-weight:600;margin:16px 0 4px}
+.drawer ul{padding-left:18px}
+.drawer li{margin:3px 0;color:var(--ink-2)}
+.drawer p{color:var(--ink-2)}
+@media (prefers-reduced-motion:reduce){.drawer{transition:none}}
+
+footer{color:var(--ink-3);font-size:12px;padding:20px 0 40px}
+
+@media (max-width:640px){
+  .wrap{padding:0 16px}
+  .tl-row{grid-template-columns:140px 1fr}
+  .tl-in{min-width:760px}
+  .count{margin-left:0;width:100%}
+  .search{max-width:none}
 }
 </style>
 </head>
 <body>
-<div class="layout">
 
-  <!-- HEADER -->
-  <header class="hdr">
-    <div class="brand">
-      <div class="brand-mark">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="1" y="4" width="14" height="12" rx="1.5"/><path d="M15 8h4l3 4v4h-7V8z"/><circle cx="5.5" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>
-        </svg>
-      </div>
+<header>
+  <div class="wrap">
+    <div class="hdr">
       <div>
-        <h1>Dispatch Operations</h1>
-        <p>Real-time staffing board</p>
+        <h1>Dispatch Schedule</h1>
+        <div class="sub" id="dateLine">—</div>
       </div>
+      <div class="clock"><b id="clock">--:--</b><span>Pacific</span><button class="theme" id="themeBtn">Dark</button></div>
     </div>
+    <nav class="views" id="views">
+      <button data-v="timeline" class="on">Today</button>
+      <button data-v="roster">Roster</button>
+      <button data-v="org">Who reports to who</button>
+    </nav>
+  </div>
+</header>
 
-    <div class="hdr-right">
-      <div class="ctrls">
-        <div class="seg" id="styleSeg">
-          <button data-style="control" class="on">Control</button>
-          <button data-style="minimal">Minimal</button>
-          <button data-style="terminal">Terminal</button>
-        </div>
-        <button class="icon-btn" id="densityBtn" title="Toggle density">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-        </button>
-        <button class="icon-btn" id="themeBtn" title="Toggle dark / light">
-          <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
-      </div>
-      <div class="live-pill"><span class="live-dot"></span>LIVE</div>
-      <div class="clock">
-        <div class="clock-time" id="clockTime">--:--</div>
-        <div class="clock-date" id="clockDate">--</div>
-      </div>
-    </div>
-  </header>
+<main class="wrap">
+  <div class="notices" id="notices"></div>
 
-  <!-- STATS -->
-  <div class="stats-bar" id="statsBar"></div>
+  <div class="bar">
+    <div class="progs" id="progs"></div>
+    <input class="search" id="q" type="search" placeholder="Search name or role">
+    <label class="chk"><input type="checkbox" id="onlyOn"> On shift now</label>
+    <div class="count" id="count"></div>
+  </div>
 
-  <!-- NAV -->
-  <nav class="nav" id="nav"></nav>
+  <section id="v-timeline"></section>
+  <section id="v-roster" class="hidden"></section>
+  <section id="v-org" class="hidden"></section>
 
-  <!-- MAIN -->
-  <main class="main">
-    <div class="toolbar">
-      <div class="search-wrap">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input class="search" id="searchInput" type="text" placeholder="Search by name or role…">
-      </div>
-      <button class="tbtn" id="onShiftBtn">
-        <span class="sdot on"></span> On shift only
-      </button>
-      <div class="seg" id="viewSeg">
-        <button data-view="cards" class="on">Roster</button>
-        <button data-view="org">Org chart</button>
-      </div>
-    </div>
-    <div id="cardsView"></div>
-    <div id="orgView" class="hidden"></div>
-  </main>
+  <footer>All times are Pacific (PT). Click a name to see what that role covers.</footer>
+</main>
 
-</div>
+<aside class="drawer" id="drawer" aria-hidden="true"></aside>
 
 <script>
-/* ═══════════════════════ DATA ═══════════════════════ */
+/* ═══════════ DATA ═══════════
+   schedule: "HH:MM - HH:MM", or by day: { default:"...", sat:"...", sun:null }
+             (by day: default = Mon–Fri; a weekend day only counts when it's listed; null = off)
+   endDate:  last day worked (YYYY-MM-DD, Pacific) — hidden after that
+   open:     unfilled position
+   away:     temporarily out (vacation, leave) — shown, never counted as on shift */
 const PROGS = {
-  sdva:{ name:'San Diego VA',        short:'SDVA' },
-  nctd:{ name:'NCTD',                short:'NCTD' },
-  lbva:{ name:'Long Beach VA',       short:'LBVA' },
-  stpa:{ name:"St Paul's PACE",      short:'STPA' },
-  fhc: { name:'Family Health Center',short:'FHC'  },
+  sdva:{ name:'San Diego VA',         short:'SDVA' },
+  nctd:{ name:'NCTD',                 short:'NCTD' },
+  lbva:{ name:'Long Beach VA',        short:'LBVA' },
+  stpa:{ name:"St Paul's PACE",       short:"St Paul's" },
+  fhc: { name:'Family Health Center', short:'FHC'  },
+};
+
+const STAFF = {
+  sup:   { name:'Supervisor',         role:'Supervisor',         schedule:'07:00 - 16:00' },
+  ldr1:  { name:'Fernando Rivera',    role:'Dispatch Lead',      schedule:'05:00 - 14:00' },
+  ldr2:  { name:'Rene Ramos',         role:'Dispatch Lead',      schedule:'09:30 - 18:00' },
+  ldr3:  { name:'Ivan Lopez',         role:'Dispatch Lead',      schedule:'07:00 - 19:00' },
+
+  flor:  { name:'Flor Pineda',        role:'Data Support', location:'San Diego',  schedule:'13:00 - 21:30', away:'On vacation' },
+  cflo:  { name:'Carlos Flores',      role:'Data Support', location:'Long Beach',
+           schedule:{ default:'13:00 - 21:30', sat:'07:00 - 15:00', sun:null }, note:'Sun: enters schedules only' },
+
+  cacos: { name:'Carlos Acosta',      role:'Dispatcher',   schedule:'07:30 - 16:30' },
+  rcast: { name:'Rene Castro',        role:'Dispatcher',   schedule:'09:30 - 19:30' },
+  will:  { name:'William Veliz',      role:'Support Team',
+           schedule:{ default:'07:30 - 16:30', sat:null, sun:'05:45 - 14:00' }, endDate:'2026-10-18' },
+  willOpen:{ open:true, name:'Open position', role:'Support Team', replaces:'will', interview:'2026-10-14',
+           schedule:{ default:'07:30 - 16:30', sat:null, sun:'05:45 - 14:00' } },
+
+  anth:  { name:'Anthony Gomez',      role:'Dispatcher',   schedule:'06:00 - 14:30' },
+  andr:  { name:'Andre Samayoa',      role:'Support Team', schedule:{ default:'06:00 - 15:30', sun:'14:45 - 22:00' } },
+  mari:  { name:'Mario Martinez',     role:'Support Team',
+           schedule:{ default:'10:00 - 19:30', fri:'12:00 - 21:30', sat:'21:45 - 06:00', sun:null } },
+  jpar:  { name:'Jonathan Paredes',   role:'Support Team',
+           schedule:{ default:'09:00 - 18:00', sat:null, sun:null } },
+
+  clau:  { name:'Claudia De La Cruz', role:'Dispatcher',   schedule:'06:00 - 14:00' },
+  jacq:  { name:'Jacquie Marroquin',  role:'Dispatcher',   schedule:{ default:'09:00 - 18:00', sat:'14:45 - 22:00' } },
+  susa:  { name:'Susan Marroquin',    role:'Dispatcher',   schedule:'07:00 - 17:00' },
+  fhcOpen:{ open:true, name:'Open position', role:'Dispatcher', title:'Part-time dispatcher', interview:'2026-10-14',
+           schedule:'06:00 - 12:00' },
+  alej:  { name:'Alejandro Jerez',    role:'Support Team', schedule:'12:00 - 20:00' },
+
+  luca:  { name:'Luca Fajardo',       role:'Closing Dispatch',   schedule:'16:30 - 22:00' },
+  maria: { name:'Maria Sanchez',      role:'Overnight Dispatch', schedule:{ default:'21:00 - 06:00', sun:'21:45 - 06:00' } },
 };
 
 const ORG = {
-  supervisor:{ id:'sup', name:'Supervisor', role:'Supervisor', schedule:'07:00 - 16:00' },
-  dataSupport:[
-    { id:'flor', name:'Flor Pineda',     role:'Data Support', location:'San Diego',  schedule:'13:00 - 21:00' },
-    { id:'fflo', name:'Fernando Flores', role:'Data Support', location:'Long Beach', schedule:'12:00 - 20:00' },
-  ],
-  leads:[
-    { id:'ldr1', name:'Fernando Rivera', role:'Dispatch Lead', schedule:'05:00 - 14:00', programs:['sdva','nctd'] },
-    { id:'ldr2', name:'Rene Ramos',      role:'Dispatch Lead', schedule:'09:30 - 18:00', programs:['lbva'] },
-    { id:'ldr3', name:'Ivan Lopez',      role:'Dispatch Lead', schedule:'08:00 - 17:00', programs:['stpa','fhc'] },
-  ],
+  leads:{ ldr1:['sdva','nctd'], ldr2:['lbva'], ldr3:['stpa','fhc'] },
   programs:{
-    sdva:{ lead:'Fernando Rivera',
-      dispatchers:[{ id:'cacos', name:'Carlos Acosta', role:'Dispatcher', schedule:'07:30 - 16:30' }],
-      support:[{ id:'will', name:'William Veliz', role:'Support Team', schedule:'07:30 - 16:30' }] },
-    nctd:{ lead:'Fernando Rivera',
-      dispatchers:[{ id:'rcast', name:'Rene Castro', role:'Dispatcher', schedule:'09:45 - 18:45' }],
-      support:[{ id:'will', name:'William Veliz', role:'Support Team', schedule:'07:30 - 16:30' }] },
-    lbva:{ lead:'Rene Ramos',
-      dispatchers:[
-        { id:'anth', name:'Anthony Gomez',    role:'Dispatcher', schedule:'06:00 - 14:30' },
-        { id:'quin', name:'Quinesha Pimpton', role:'Dispatcher', schedule:'10:30 - 19:00' }],
-      support:[
-        { id:'andr', name:'Andre Samayoa',  role:'Support Team', schedule:'06:00 - 15:30' },
-        { id:'mari', name:'Mario Martinez', role:'Support Team', schedule:'10:00 - 19:00' }] },
-    stpa:{ lead:'Ivan Lopez',
-      dispatchers:[
-        { id:'clau', name:'Claudia De La Cruz', role:'Dispatcher', schedule:'06:00 - 14:00' },
-        { id:'jacq', name:'Jacquie Marroquin',  role:'Dispatcher', schedule:'09:00 - 18:00' }],
-      support:[{ id:'alej', name:'Alejandro Jerez', role:'Support Team', schedule:'15:00 - 21:00' }] },
-    fhc:{ lead:'Ivan Lopez',
-      dispatchers:[{ id:'susa', name:'Susan Marroquin', role:'Dispatcher', schedule:'07:00 - 16:00' }],
-      support:[{ id:'alej', name:'Alejandro Jerez', role:'Support Team', schedule:'15:00 - 21:00' }] },
+    sdva:{ lead:'ldr1', dispatchers:['cacos'],        support:['will','willOpen'] },
+    nctd:{ lead:'ldr1', dispatchers:['rcast'],        support:['will','willOpen'] },
+    lbva:{ lead:'ldr2', dispatchers:['anth'],         support:['andr','mari','jpar'] },
+    stpa:{ lead:'ldr3', dispatchers:['clau','jacq'],  support:['alej'] },
+    fhc: { lead:'ldr3', dispatchers:['susa','fhcOpen'], support:['alej'] },
   },
-  closing:  { id:'luca',  name:'Luca Fajardo',  role:'Closing Dispatch',   schedule:'16:30 - 22:00' },
-  overnight:{ id:'maria', name:'Maria Sanchez', role:'Overnight Dispatch', schedule:'21:00 - 06:00' },
+  afterHours:['luca','maria'],
+  dataSupport:['flor','cflo'],
 };
 
-/* ═══════════════════════ ROLE DEFINITIONS ═══════════════════════ */
-const ROLE_DEFS={
+const ROLE_DEFS = {
   'Dispatch Manager':{
-    purpose:'Provide strategic oversight of all dispatch operations while ensuring service performance, staffing alignment, accountability, and continuous improvement.',
-    responsibilities:['Establish department goals and operational standards.','Oversee all dispatch programs and staffing plans.','Monitor KPI performance and service outcomes.','Lead operational meetings and escalation management.','Approve process improvements and workflow changes.','Conduct coaching, development, and corrective actions.','Support client relationships and operational communication.','Ensure all teams remain aligned with expectations.'],
-    ownership:['Department performance','Staffing strategy','Escalations','SOP development','Operational execution'],
-    success:['OTP performance','Reduced service failures','Team development','Program stability'],
+    purpose:'Strategic oversight of all dispatch operations: service performance, staffing, accountability and continuous improvement.',
+    duties:['Set department goals and operational standards.','Oversee all dispatch programs and staffing plans.','Monitor KPI performance and service outcomes.','Lead operational meetings and escalations.','Approve process improvements and workflow changes.','Coaching, development and corrective actions.','Support client relationships and communication.'],
+    owns:['Department performance','Staffing strategy','Escalations','SOP development'],
+    measured:['OTP performance','Fewer service failures','Team development','Program stability'],
   },
   'Supervisor':{
-    purpose:'Support daily execution by monitoring operations, coaching staff, and maintaining accountability.',
-    responsibilities:['Monitor live dispatch performance.','Audit communication and trip execution.','Support service recovery efforts.','Review delays and operational concerns.','Coach dispatch staff.','Support schedule and workload balancing.','Escalate issues when necessary.'],
-    ownership:['Daily execution','Accountability','Coaching','Service recovery'],
-    success:['Reduced escalations','Improved response times','Dispatch compliance'],
+    purpose:'Support daily execution by monitoring operations, coaching staff and keeping accountability.',
+    duties:['Monitor live dispatch performance.','Audit communication and trip execution.','Support service recovery.','Review delays and operational concerns.','Coach dispatch staff.','Balance schedules and workload.','Escalate issues when needed.'],
+    owns:['Daily execution','Accountability','Coaching','Service recovery'],
+    measured:['Fewer escalations','Faster response times','Dispatch compliance'],
   },
   'Dispatch Lead':{
-    purpose:'Own assigned program operations and provide leadership, decision-making, and support.',
-    responsibilities:['Oversee assigned program activity.','Review assignments and service flow.','Monitor same-day operational changes.','Support dispatch decision-making.','Ensure communication standards are followed.','Coach and support dispatchers.'],
-    ownership:['Program performance','Assignment quality','Service continuity'],
-    success:['Program OTP','Reduced operational gaps'],
+    purpose:'Own the assigned programs and give the dispatchers direction, decisions and support.',
+    duties:['Oversee assigned program activity.','Review assignments and service flow.','Watch same-day changes.','Support dispatch decisions.','Make sure communication standards are followed.','Coach and support dispatchers.'],
+    owns:['Program performance','Assignment quality','Service continuity'],
+    measured:['Program OTP','Fewer operational gaps'],
   },
   'Dispatcher':{
-    purpose:'Execute transportation operations and maintain service performance.',
-    responsibilities:['Assign and manage trips.','Dispatch drivers.','Monitor service execution.','Manage same-day scheduling adjustments.','Execute recovery plans.','Update RouteGenie and VetRide.','Maintain documentation.'],
-    ownership:['Driver assignments','Trip completion','Schedule execution'],
-    success:['Trip completion','Assignment efficiency','Delay reduction'],
+    purpose:'Run transportation operations and keep service on time.',
+    duties:['Assign and manage trips.','Dispatch drivers.','Monitor service execution.','Handle same-day schedule changes.','Run recovery plans.','Keep RouteGenie and VetRide updated.','Keep documentation current.'],
+    owns:['Driver assignments','Trip completion','Schedule execution'],
+    measured:['Trip completion','Assignment efficiency','Fewer delays'],
   },
   'Support Team':{
-    purpose:'Support dispatch operations through communication, monitoring, follow-up, and operational continuity.',
-    responsibilities:['Monitor VetRide for same-day add-ons.','Monitor dispatch queues.','Identify urgent operational requests.','Monitor dispatch emails.','Answer inbound calls and route requests appropriately.','Contact passengers with ETA updates.','Complete courtesy delay calls.','Relay updates and operational changes to drivers.','Maintain dispatch notes and documentation.'],
-    ownership:['VetRide monitoring','Email management','Phone coverage','ETA communication','Service follow-up'],
-    success:['Response time','Communication quality','Reduced missed requests'],
+    purpose:'Back up dispatch with communication, monitoring and follow-up.',
+    duties:['Watch VetRide for same-day add-ons.','Watch dispatch queues and emails.','Flag urgent requests.','Answer inbound calls and route them.','Give passengers ETA updates and courtesy delay calls.','Relay changes to drivers.','Keep dispatch notes up to date.'],
+    owns:['VetRide monitoring','Email','Phone coverage','ETA calls','Follow-up'],
+    measured:['Response time','Communication quality','Fewer missed requests'],
   },
   'Closing Dispatch':{
-    purpose:'Prepare operations for next-day success while maintaining overnight continuity.',
-    responsibilities:['Review next-day schedules.','Audit manifests.','Confirm staffing readiness.','Monitor overnight operations.','Escalate concerns.','Validate trip setup.'],
-    ownership:['Next-day readiness','Manifest accuracy'],
-    success:['Reduced morning corrections','Improved preparation'],
+    purpose:'Set up the next day and keep the evening covered.',
+    duties:['Review next-day schedules.','Audit manifests.','Confirm staffing is ready.','Monitor evening operations.','Escalate concerns.','Check trip setup.'],
+    owns:['Next-day readiness','Manifest accuracy'],
+    measured:['Fewer morning corrections','Better preparation'],
   },
   'Overnight Dispatch':{
-    purpose:'Prepare operations for next-day success while maintaining overnight continuity.',
-    responsibilities:['Review next-day schedules.','Audit manifests.','Confirm staffing readiness.','Monitor overnight operations.','Escalate concerns.','Validate trip setup.'],
-    ownership:['Next-day readiness','Manifest accuracy'],
-    success:['Reduced morning corrections','Improved preparation'],
+    purpose:'Cover the overnight and hand the morning a clean board.',
+    duties:['Review next-day schedules.','Audit manifests.','Confirm staffing is ready.','Monitor overnight operations.','Escalate concerns.','Check trip setup.'],
+    owns:['Next-day readiness','Manifest accuracy'],
+    measured:['Fewer morning corrections','Better preparation'],
   },
   'Data Support':{
-    purpose:'Maintain accurate trip setup and operational data to support efficient dispatch execution.',
-    responsibilities:['Enter and update trip information.','Review imports and data accuracy.','Validate required trip information.','Prepare schedules for dispatch review.','Review trip readiness.','Audit records and correct discrepancies.','Escalate missing information.','Support corrections, reporting, and operational data.'],
-    ownership:['Data integrity','Trip setup','Manifest readiness'],
-    success:['Data accuracy','Reduced corrections','Operational readiness'],
+    purpose:'Keep trip setup and operational data accurate so dispatch can execute.',
+    duties:['Enter and update trip information.','Review imports for accuracy.','Check required trip information.','Prepare schedules for dispatch review.','Audit records and fix discrepancies.','Escalate missing information.','Support corrections and reporting.'],
+    owns:['Data integrity','Trip setup','Manifest readiness'],
+    measured:['Data accuracy','Fewer corrections','Operational readiness'],
   },
 };
 
-/* ═══════════════════════ SHIFT LOGIC ═══════════════════════ */
-function toMin(s){ const m=s.trim().match(/^(\d{1,2}):(\d{2})$/); return m? +m[1]*60 + +m[2] : null; }
-function onShift(sched){
-  if(!sched || sched==='24/7') return true;
-  const p=sched.split(/\s*[-–]\s*/); if(p.length!==2) return false;
-  const s=toMin(p[0]), e=toMin(p[1]); if(s===null||e===null) return false;
-  const n=new Date(), c=n.getHours()*60+n.getMinutes();
-  return e>s ? (c>=s&&c<e) : (c>=s||c<e);
+/* ═══════════ PACIFIC TIME ═══════════ */
+const TZ = 'America/Los_Angeles';
+const DAYS = ['sun','mon','tue','wed','thu','fri','sat'];
+const DAY_NAMES = {mon:'Mon',tue:'Tue',wed:'Wed',thu:'Thu',fri:'Fri',sat:'Sat',sun:'Sun'};
+function pt(d=new Date()){
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:TZ,hourCycle:'h23',
+    year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',weekday:'short'})
+    .formatToParts(d).map(x=>[x.type,x.value]));
+  return { min:+p.hour*60 + +p.minute, dow:p.weekday.toLowerCase().slice(0,3),
+           date:`${p.year}-${p.month}-${p.day}`, hm:`${p.hour}:${p.minute}` };
+}
+function prevDow(dow){ return DAYS[(DAYS.indexOf(dow)+6)%7]; }
+function fmtDate(iso,opts={weekday:'short',month:'short',day:'numeric'}){
+  return new Date(iso+'T12:00:00Z').toLocaleDateString('en-US',{...opts,timeZone:'UTC'});
+}
+function addDays(iso,n){ const d=new Date(iso+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+
+/* ═══════════ SHIFT LOGIC ═══════════ */
+function toMin(s){ const m=s.trim().match(/^(\d{1,2}):(\d{2})$/); return m ? +m[1]*60 + +m[2] : null; }
+function parse(s){ if(!s) return null; const p=s.split(/\s*[-–]\s*/); if(p.length!==2) return null;
+  const a=toMin(p[0]), b=toMin(p[1]); return a===null||b===null ? null : {s:a,e:b}; }
+function schedOn(p,dow){
+  const sc=p.schedule;
+  if(typeof sc==='string') return sc;
+  if(dow in sc) return sc[dow];
+  return ['sat','sun'].includes(dow) ? null : sc.default;   // weekends only when listed
+}
+function onShift(p,now){
+  if(p.away) return false;
+  const t=parse(schedOn(p,now.dow));
+  if(t && (t.e>t.s ? now.min>=t.s && now.min<t.e : now.min>=t.s)) return true;
+  const y=parse(schedOn(p,prevDow(now.dow)));           // overnight shift that started yesterday
+  return !!(y && y.e<=y.s && now.min<y.e);
+}
+function active(p,now){ return !p.endDate || now.date<=p.endDate; }
+function weekLabel(p){
+  const sc=p.schedule; if(typeof sc==='string') return sc;
+  const order=['mon','tue','wed','thu','fri','sat','sun'];
+  const vals=order.map(d=> schedOn(p,d));
+  const known=order.map(d=> d in sc || !['sat','sun'].includes(d));
+  const out=[]; let i=0;
+  while(i<7){ if(!known[i]){ i++; continue; }
+    let j=i; while(j+1<7 && known[j+1] && vals[j+1]===vals[i]) j++;
+    const days = i===j ? DAY_NAMES[order[i]] : `${DAY_NAMES[order[i]]}–${DAY_NAMES[order[j]]}`;
+    out.push(`${days} ${vals[i]||'off'}`); i=j+1; }
+  return out.join(' · ');
+}
+function displayName(p){ return p.open ? (p.title||'Open position') : p.name; }
+function openNote(p,now){
+  const bits=[];
+  if(p.replaces){ const r=STAFF[p.replaces];
+    bits.push(active(r,now) ? `Replacing ${r.name}` : `Vacant since ${fmtDate(addDays(r.endDate,1),{month:'numeric',day:'numeric'})}`); }
+  if(p.interview && now.date<=p.interview) bits.push(`interviews ${fmtDate(p.interview,{weekday:'short',month:'numeric',day:'numeric'})}`);
+  return bits.join(' · ');
 }
 
-/* ═══════════════════════ UTILS ═══════════════════════ */
-function initials(n){ return n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(); }
-function tagHTML(ids){ return ids.map(p=>`<span class="ptag">${PROGS[p].short}</span>`).join(''); }
-function dot(a){ return `<span class="sdot ${a?'on':''}"></span>`; }
-function statusTag(a){ return `<span class="status-tag ${a?'on':''}">${a?'On shift':'Off'}</span>`; }
+/* ═══════════ STATE ═══════════ */
+let view='timeline', prog='all', query='', onlyOn=false;
+const store={ get(k){ try{return localStorage.getItem('dispatch_'+k);}catch(e){return null;} },
+              set(k,v){ try{localStorage.setItem('dispatch_'+k,v);}catch(e){} } };
 
-function allStaff(){
-  const seen=new Set(), out=[];
-  const add=p=>{ if(!seen.has(p.id)){ seen.add(p.id); out.push(p); } };
-  add(ORG.supervisor); ORG.dataSupport.forEach(add); ORG.leads.forEach(add);
-  Object.values(ORG.programs).forEach(pg=>{ pg.dispatchers.forEach(add); pg.support.forEach(add); });
-  add(ORG.closing); add(ORG.overnight);
-  return out;
-}
-
-/* ═══════════════════════ STATE ═══════════════════════ */
-let curTab='all', filterOn=false, query='', curView='cards';
-const root=document.documentElement;
-const LS=k=>'dispatch_'+k;
-
-/* ═══════════════════════ CLOCK ═══════════════════════ */
-function tick(){
-  const n=new Date();
-  document.getElementById('clockTime').textContent=n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
-  document.getElementById('clockDate').textContent=n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-}
-
-/* ═══════════════════════ STATS ═══════════════════════ */
-function renderStats(){
-  const all=allStaff(), active=all.filter(p=>onShift(p.schedule)).length;
-  const pct=Math.round(active/all.length*100);
-  document.getElementById('statsBar').innerHTML=`
-    <div class="stat"><span class="sdot on"></span><b class="ok-num">${active}</b> on shift now</div>
-    <div class="stat"><div class="stat-bar-mini"><i style="width:${pct}%"></i></div><span>${pct}% staffed</span></div>
-    <div class="stat-sep"></div>
-    <div class="stat"><b>${all.length}</b> total staff</div>
-    <div class="stat-sep"></div>
-    <div class="stat"><b>${Object.keys(PROGS).length}</b> programs</div>`;
-}
-
-/* ═══════════════════════ NAV ═══════════════════════ */
-function renderNav(){
-  const tabs=[{id:'all',label:'All staff'},...Object.entries(PROGS).map(([id,m])=>({id,label:m.name}))];
-  document.getElementById('nav').innerHTML=tabs.map(t=>{
-    const cnt=t.id==='all'?allStaff().length
-      :[...(ORG.programs[t.id]?.dispatchers||[]),...(ORG.programs[t.id]?.support||[])].length;
-    return `<button class="tab ${curTab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.label}<span class="tab-badge">${cnt}</span></button>`;
-  }).join('');
-}
-function setTab(id){ curTab=id; renderNav(); render(); }
-
-/* ═══════════════════════ FILTER ═══════════════════════ */
+function progIds(){ return prog==='all' ? Object.keys(PROGS) : [prog]; }
 function matches(p){
-  if(!query) return true;
-  const q=query.toLowerCase();
-  return p.name.toLowerCase().includes(q) || (p.role||'').toLowerCase().includes(q);
+  if(!query) return true; const q=query.toLowerCase();
+  return displayName(p).toLowerCase().includes(q) || p.role.toLowerCase().includes(q) || (p.open && 'open'.includes(q));
 }
-function visible(p){ return matches(p) && (!filterOn || onShift(p.schedule)); }
+function show(id,now){ const p=STAFF[id]; return active(p,now) && matches(p) && (!onlyOn || (!p.open && onShift(p,now))); }
 
-/* ═══════════════════════ TEMPLATES ═══════════════════════ */
-function infoBtn(role,name){
-  if(!ROLE_DEFS[role]) return '';
-  const r=role.replace(/'/g,"\\'"), n=name.replace(/'/g,"\\'");
-  return `<button class="info-btn" onclick="openRole('${r}','${n}',event)" title="Role definition">i</button>`;
-}
-function pcardHTML(p, tags){
-  const a=onShift(p.schedule);
-  return `<div class="pcard ${a?'on':''}">
-    <div class="av ${a?'on':''}">${initials(p.name)}</div>
-    <div class="pi">
-      <div class="pname">${p.name}</div>
-      <div class="prole">${p.role}${p.location?` · ${p.location}`:''}</div>
-      <div class="psched">${p.schedule}</div>
-      ${tags?`<div class="ptags">${tags}</div>`:''}
-    </div>
-    <div class="pcard-r">${dot(a)}${infoBtn(p.role,p.name)}</div>
-  </div>`;
-}
-function sitemHTML(p){
-  const a=onShift(p.schedule);
-  return `<div class="sitem ${a?'on':''}">
-    <div class="av ${a?'on':''}">${initials(p.name)}</div>
-    <div class="pi">
-      <div class="sname">${p.name}</div>
-      <div class="srole">${p.role}</div>
-      <div class="ssched">${p.schedule}</div>
-    </div>
-    ${dot(a)}${infoBtn(p.role,p.name)}
-  </div>`;
+/* groups for the current filter: [{title, meta, ids}] */
+function groups(now){
+  const g=[];
+  if(prog==='all') g.push({ title:'Leads & supervisor', ids:['ldr1','ldr2','ldr3','sup'] });
+  progIds().forEach(pid=>{
+    const pg=ORG.programs[pid], meta=PROGS[pid];
+    const ids = prog==='all' ? [...pg.dispatchers,...pg.support] : [pg.lead,...pg.dispatchers,...pg.support];
+    g.push({ title:meta.name, meta:`Lead: ${STAFF[pg.lead].name}`, ids, prog:pid });
+  });
+  if(prog==='all'){ g.push({ title:'Evening & overnight', ids:ORG.afterHours });
+                    g.push({ title:'Data support', ids:ORG.dataSupport }); }
+  return g.map(x=>({...x, all:x.ids.filter(id=>active(STAFF[id],now)), ids:x.ids.filter(id=>show(id,now))}))
+          .filter(x=>x.ids.length);
 }
 
-/* ═══════════════════════ CARDS VIEW ═══════════════════════ */
-function renderCards(){
-  const el=document.getElementById('cardsView');
+/* ═══════════ RENDER: TIMELINE ═══════════ */
+const pct = m => (m/1440*100).toFixed(3)+'%';
+function bars(p,now){
+  const today=parse(schedOn(p,now.dow)), y=parse(schedOn(p,prevDow(now.dow)));
+  const on = !p.open && onShift(p,now), cls = p.open ? 'open' : '';
   let h='';
-
-  if(curTab==='all'){
-    const ldrs=[...ORG.leads, ORG.supervisor].filter(visible);
-    if(ldrs.length){
-      h+=`<div class="sec"><span class="sec-label">Leadership &amp; Leads</span><div class="sec-line"></div></div><div class="cards-row">`;
-      ORG.leads.forEach(l=>{ if(visible(l)) h+=pcardHTML(l, tagHTML(l.programs)); });
-      if(visible(ORG.supervisor)) h+=pcardHTML(ORG.supervisor);
-      h+=`</div>`;
-    }
-
-    const ds=ORG.dataSupport.filter(visible);
-    if(ds.length){
-      h+=`<div class="sec"><span class="sec-label">Data Support</span><div class="sec-line"></div></div><div class="cards-row">`;
-      ds.forEach(p=>{ h+=pcardHTML(p); });
-      h+=`</div>`;
-    }
-
-    h+=`<div class="sec"><span class="sec-label">Programs</span><div class="sec-line"></div></div>`;
-    Object.entries(PROGS).forEach(([id,meta])=>{
-      const pg=ORG.programs[id]; if(!pg) return;
-      const all=[...pg.dispatchers,...pg.support];
-      const shown=all.filter(visible); if(!shown.length) return;
-      const cnt=all.filter(p=>onShift(p.schedule)).length;
-      const pct=Math.round(cnt/all.length*100);
-      h+=`<div class="prog-section">
-        <div class="prog-hdr">
-          <span class="prog-code">${meta.short}</span>
-          <div class="prog-meta">
-            <div class="prog-title">${meta.name}</div>
-            <div class="prog-lead">Lead · ${pg.lead}</div>
-          </div>
-          <div class="prog-cov">
-            <span class="cov-txt"><b>${cnt}</b> / ${all.length} on</span>
-            <div class="cov-bar"><i style="width:${pct}%"></i></div>
-          </div>
-        </div>
-        <div class="prog-grid">${shown.map(sitemHTML).join('')}</div>
-      </div>`;
-    });
-
-    const ah=[ORG.closing,ORG.overnight].filter(visible);
-    if(ah.length){
-      h+=`<div class="sec"><span class="sec-label">After hours</span><div class="sec-line"></div></div><div class="ah-row">`;
-      ah.forEach(p=>{
-        const a=onShift(p.schedule);
-        h+=`<div class="ah-card ${a?'on':''}">
-          <div class="ah-label">${p.role}</div>
-          <div class="ah-inner">
-            <div class="av ${a?'on':''}">${initials(p.name)}</div>
-            <div class="pi"><div class="pname">${p.name}</div><div class="psched">${p.schedule}</div></div>
-            ${statusTag(a)}
-          </div>
-        </div>`;
-      });
-      h+=`</div>`;
-    }
-  } else {
-    const pg=ORG.programs[curTab], meta=PROGS[curTab];
-    if(!pg){ el.innerHTML='<div class="empty"><h3>No data</h3></div>'; return; }
-    const lead=ORG.leads.find(l=>l.programs.includes(curTab));
-    if(lead && visible(lead)){
-      h+=`<div class="sec"><span class="sec-label">Dispatch Lead</span><div class="sec-line"></div></div><div class="cards-row">${pcardHTML(lead, tagHTML(lead.programs))}</div>`;
-    }
-    const disp=pg.dispatchers.filter(visible);
-    if(disp.length) h+=`<div class="sec"><span class="sec-label">Dispatchers</span><div class="sec-line"></div></div><div class="cards-row">${disp.map(p=>pcardHTML(p)).join('')}</div>`;
-    const supp=pg.support.filter(visible);
-    if(supp.length) h+=`<div class="sec"><span class="sec-label">Support Team</span><div class="sec-line"></div></div><div class="cards-row">${supp.map(p=>pcardHTML(p)).join('')}</div>`;
-    if(!disp.length && !supp.length && !(lead&&visible(lead))) h='<div class="empty"><h3>No staff match current filters</h3></div>';
+  if(y && y.e<=y.s && y.e>0){                              // tail of last night's shift
+    const live = on && now.min<y.e;
+    h+=`<div class="bar-s ${cls} ${live?'on':''}" style="left:0;width:${pct(y.e)}" title="${schedOn(p,prevDow(now.dow))} (from yesterday)"></div>`;
   }
-  el.innerHTML=h||'<div class="empty"><h3>No results found</h3></div>';
+  if(today){
+    const end = today.e>today.s ? today.e : 1440;
+    const live = on && now.min>=today.s;
+    const label = schedOn(p,now.dow).replace(' - ','–');
+    h+=`<div class="bar-s ${cls} ${live?'on':''}" style="left:${pct(today.s)};width:${pct(end-today.s)}" title="${label}">${label}</div>`;
+  } else if(!(y && y.e<=y.s)) {
+    h+=`<span class="offday">Off today</span>`;
+  }
+  return h;
 }
-
-/* ═══════════════════════ ORG CHART ═══════════════════════ */
-function orgNode(person){
-  const a=person.schedule==='24/7'?true:onShift(person.schedule);
-  return `<div class="org-node ${a?'on':''}">
-    <div class="org-node-dot ${a?'on':''}"></div>
-    <div class="org-nlabel">${person.role||''}</div>
-    <div class="org-nname">${person.name}</div>
-    <div class="org-nsched">${person.schedule}</div>
-    ${person.programs?`<div class="org-ntags">${tagHTML(person.programs)}</div>`:''}
+function tlRow(id,now){
+  const p=STAFF[id];
+  let tags='';
+  if(p.endDate) tags+=`<span class="tag leave">Last day ${fmtDate(p.endDate,{weekday:'short',month:'numeric',day:'numeric'})}</span>`;
+  if(p.open) tags+=`<span class="tag open">Open</span>`;
+  if(p.away) tags+=`<span class="tag leave">${p.away}</span>`;
+  const sub = p.open ? [p.role, openNote(p,now)].filter(Boolean).join(' · ')
+                     : [p.role, p.location, p.note].filter(Boolean).join(' · ');
+  return `<div class="tl-row">
+    <div class="tl-name" data-id="${id}"><div class="nm"><span>${displayName(p)}</span>${tags}</div><div class="rl">${sub}</div></div>
+    <div class="track">${bars(p,now)}<div class="nowline" style="left:${pct(now.min)}"></div></div>
   </div>`;
 }
-function renderOrg(){
-  const el=document.getElementById('orgView');
-  let h=`<div class="org-scroller"><div class="org-tree">`;
-  h+=`<div class="org-center">${orgNode({name:'Dispatch Manager',role:'Manager',schedule:'24/7'})}</div>`;
-  h+=`<div class="org-vline"><div></div></div>`;
-  h+=`<div class="org-center">${orgNode(ORG.supervisor)}</div>`;
-  h+=`<div class="org-vline"><div></div></div>`;
-  h+=`<div class="org-leads-row">`;
-  ORG.leads.forEach(lead=>{ h+=`<div class="org-lead-col">${orgNode(lead)}</div>`; });
-  h+=`</div>`;
-
-  h+=`<div class="org-progs">`;
-  ORG.leads.forEach(lead=>{
-    lead.programs.forEach(pid=>{
-      const meta=PROGS[pid], pg=ORG.programs[pid];
-      h+=`<div class="org-prog">
-        <div class="org-prog-name">${meta.name}<span class="ptag">${meta.short}</span></div>
-        ${pg.dispatchers.map(p=>{ const a=onShift(p.schedule);
-          return `<div class="org-row-sm"><span class="org-mini-dot ${a?'on':''}"></span><div><div class="org-mini-name">${p.name}</div><div class="org-mini-sched">${p.schedule}</div></div></div>`;
-        }).join('')}
-        ${pg.support.length?`<div class="org-supp-sep">Support</div>${pg.support.map(p=>{ const a=onShift(p.schedule);
-          return `<div class="org-row-sm"><span class="org-mini-dot ${a?'on':''}"></span><div><div class="org-mini-name">${p.name}</div><div class="org-mini-sched">${p.schedule}</div></div></div>`;
-        }).join('')}`:''}
-      </div>`;
-    });
+function renderTimeline(now){
+  let hrs=''; for(let h=0;h<24;h+=2) hrs+=`<span class="hr" style="left:${pct(h*60+(h?0:20))}">${String(h).padStart(2,'0')}</span>`;
+  let h=`<div class="tl"><div class="tl-in">
+    <div class="tl-row axis"><div class="tl-name">${fmtDate(now.date)}</div>
+      <div class="track">${hrs}<span class="nowtag" style="left:${pct(now.min)}">${now.hm}</span></div></div>`;
+  const gs=groups(now);
+  gs.forEach(g=>{
+    const on=g.all.filter(id=>!STAFF[id].open && onShift(STAFF[id],now)).length;
+    const total=g.all.filter(id=>!STAFF[id].open).length;
+    h+=`<div class="grp"><span class="gt"><h2>${g.title}</h2>${g.meta?`<span class="meta">${g.meta}</span>`:''}</span>
+        <span class="cov">${on} of ${total} on now</span></div>`;
+    g.ids.forEach(id=>{ h+=tlRow(id,now); });
   });
-  h+=`</div>`;
-
-  h+=`<div class="org-ah-row">`;
-  [ORG.closing,ORG.overnight].forEach(p=>{ const a=onShift(p.schedule);
-    h+=`<div class="org-ah-item ${a?'on':''}"><span class="org-mini-dot ${a?'on':''}" style="width:9px;height:9px"></span>
-      <div><div class="org-ah-label">${p.role}</div><div class="org-ah-name">${p.name}</div><div class="org-ah-sched">${p.schedule}</div></div></div>`;
-  });
-  h+=`</div>`;
-
-  h+=`<div class="org-ds-row">`;
-  ORG.dataSupport.forEach(p=>{ const a=onShift(p.schedule);
-    h+=`<div class="org-ah-item ${a?'on':''}"><span class="org-mini-dot ${a?'on':''}" style="width:9px;height:9px"></span>
-      <div><div class="org-ah-label">Data Support · ${p.location}</div><div class="org-ah-name">${p.name}</div><div class="org-ah-sched">${p.schedule}</div></div></div>`;
-  });
-  h+=`</div>`;
-
+  if(!gs.length) h+=`<div class="grp"><span class="meta">Nobody matches these filters.</span></div>`;
   h+=`</div></div>`;
+  const el=document.getElementById('v-timeline'), prev=el.querySelector('.tl')?.scrollLeft;
   el.innerHTML=h;
+  const tl=el.querySelector('.tl');
+  if(prev!==undefined) tl.scrollLeft=prev;               // keep the user's scroll on refresh
+  else if(tl.scrollWidth>tl.clientWidth){                // narrow screen: start the view at 05:00
+    const track=tl.querySelector('.track'); tl.scrollLeft=track.offsetWidth*5/24;
+  }
 }
 
-/* ═══════════════════════ RENDER ═══════════════════════ */
-function render(){ renderCards(); renderOrg(); }
+/* ═══════════ RENDER: ROSTER ═══════════ */
+function renderRoster(now){
+  const progsOf={};
+  Object.entries(ORG.programs).forEach(([pid,pg])=>[...pg.dispatchers,...pg.support].forEach(id=>(progsOf[id]=progsOf[id]||[]).push(PROGS[pid].short)));
+  Object.entries(ORG.leads).forEach(([id,ps])=>progsOf[id]=ps.map(x=>PROGS[x].short));
+  ORG.afterHours.forEach(id=>progsOf[id]=['All programs']);
+  ORG.dataSupport.forEach(id=>progsOf[id]=[STAFF[id].location]);
+  progsOf.sup=['All programs'];
 
-/* ═══════════════════════ VIEW / THEME / STYLE ═══════════════════════ */
+  const seen=new Set(), rows=[];
+  groups(now).forEach(g=>g.ids.forEach(id=>{ if(!seen.has(id)){ seen.add(id); rows.push(id); } }));
+  let h=`<div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Role</th><th>Program</th><th>Today</th><th>Week</th><th>Now</th></tr></thead><tbody>`;
+  rows.forEach(id=>{
+    const p=STAFF[id], on=!p.open && onShift(p,now), today=schedOn(p,now.dow);
+    let extra='';
+    if(p.endDate) extra=`<div class="wk">Last day ${fmtDate(p.endDate)}</div>`;
+    if(p.open) extra=`<div class="wk">${openNote(p,now)}</div>`;
+    if(p.away) extra=`<div class="wk">${p.away}</div>`;
+    h+=`<tr><td class="nmcell" data-id="${id}">${displayName(p)}${extra}</td><td>${p.role}</td><td>${(progsOf[id]||[]).join(', ')}</td>
+      <td class="t">${today||'Off'}</td><td class="wk">${typeof p.schedule==='string'?'':weekLabel(p)}${p.note?`<br>${p.note}`:''}</td>
+      <td>${p.open?'<span class="st-off">Hiring</span>':p.away?'<span class="st-off">Away</span>':on?'<span class="st-on">On shift</span>':'<span class="st-off">Off</span>'}</td></tr>`;
+  });
+  if(!rows.length) h+=`<tr><td colspan="6" class="wk">Nobody matches these filters.</td></tr>`;
+  h+=`</tbody></table></div>`;
+  document.getElementById('v-roster').innerHTML=h;
+}
+
+/* ═══════════ RENDER: ORG ═══════════ */
+function renderOrg(now){
+  const li=(id,extra='')=>{ const p=STAFF[id]; if(!active(p,now)) return '';
+    const hrs = typeof p.schedule==='string' ? p.schedule : weekLabel(p);
+    return `<li><span class="who" data-id="${id}">${displayName(p)}</span> <span class="what">· ${p.role}${p.open?` (${openNote(p,now)})`:''}${p.away?` (${p.away.toLowerCase()})`:''}</span><span class="hrs t">${hrs}</span>${extra}</li>`; };
+  let h=`<div class="org"><ul><li><span class="who">Dispatch Manager</span><ul>${li('sup',
+    `<ul>${Object.entries(ORG.leads).map(([lid,ps])=>li(lid,
+      `<ul>${ps.map(pid=>{ const pg=ORG.programs[pid];
+        return `<li><span class="who">${PROGS[pid].name}</span><ul>${[...pg.dispatchers,...pg.support].map(id=>li(id)).join('')}</ul></li>`; }).join('')}</ul>`
+    )).join('')}</ul>`)}
+    <li class="sec">Evening &amp; overnight</li>${ORG.afterHours.map(id=>li(id)).join('')}
+    <li class="sec">Data support</li>${ORG.dataSupport.map(id=>li(id)).join('')}
+  </ul></li></ul></div>`;
+  document.getElementById('v-org').innerHTML=h;
+}
+
+/* ═══════════ HEADER / NOTICES ═══════════ */
+function renderHeader(now){
+  document.getElementById('clock').textContent=now.hm;
+  document.getElementById('dateLine').textContent=fmtDate(now.date,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+function renderNotices(now){
+  const n=[];
+  Object.values(STAFF).forEach(p=>{
+    if(p.endDate && active(p,now)) n.push(`<b>${p.name}</b>'s last day is ${fmtDate(p.endDate,{weekday:'long',month:'short',day:'numeric'})}.`);
+  });
+  const hiring=Object.entries(STAFF).filter(([,p])=>p.open && p.interview && now.date<=p.interview);
+  if(hiring.length){
+    const what=hiring.map(([id,p])=>{
+      const where=Object.entries(ORG.programs).filter(([,pg])=>[...pg.dispatchers,...pg.support].includes(id)).map(([pid])=>PROGS[pid].short).join('/');
+      return p.replaces ? `${STAFF[p.replaces].name}'s replacement (${where} support)` : `${(p.title||p.role).toLowerCase()} for ${where} (${schedOn(p,now.dow).replace(' - ','–')})`;
+    });
+    const day = hiring[0][1].interview===now.date ? 'today' : fmtDate(hiring[0][1].interview,{weekday:'long',month:'short',day:'numeric'});
+    n.push(`<b>Interviews ${day}:</b> ${what.join(' and ')}.`);
+  }
+  document.getElementById('notices').innerHTML=n.map(x=>`<div class="notice">${x}</div>`).join('');
+}
+function renderCount(now){
+  const ids=new Set(); Object.values(ORG.programs).forEach(pg=>[...pg.dispatchers,...pg.support,pg.lead].forEach(i=>ids.add(i)));
+  ['sup',...ORG.afterHours,...ORG.dataSupport].forEach(i=>ids.add(i));
+  const people=[...ids].map(i=>STAFF[i]).filter(p=>!p.open && active(p,now));
+  document.getElementById('count').innerHTML=`<b>${people.filter(p=>onShift(p,now)).length}</b> of ${people.length} on shift now`;
+}
+function renderProgs(){
+  document.getElementById('progs').innerHTML=[['all','All'],...Object.entries(PROGS).map(([k,v])=>[k,v.short])]
+    .map(([k,l])=>`<button data-p="${k}" class="${prog===k?'on':''}">${l}</button>`).join('');
+}
+
+function render(){
+  const now=pt();
+  renderHeader(now); renderNotices(now); renderCount(now); renderProgs();
+  if(view==='timeline') renderTimeline(now);
+  if(view==='roster') renderRoster(now);
+  if(view==='org') renderOrg(now);
+}
+
+/* ═══════════ ROLE DRAWER ═══════════ */
+function openPerson(id){
+  const p=STAFF[id]; if(!p) return; const def=ROLE_DEFS[p.role]; const now=pt();
+  const list=a=>`<ul>${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  const d=document.getElementById('drawer');
+  d.innerHTML=`<button class="x" id="dx">Close</button>
+    <h3>${displayName(p)}</h3>
+    <p>${p.role}${p.location?` · ${p.location}`:''}</p>
+    <h4>Hours (PT)</h4><p class="t">${typeof p.schedule==='string'?p.schedule:weekLabel(p)}</p>
+    ${p.note?`<p>${p.note}</p>`:''}
+    ${p.endDate?`<p><b>Last day: ${fmtDate(p.endDate,{weekday:'long',month:'long',day:'numeric'})}</b></p>`:''}
+    ${p.open?`<p><b>${openNote(p,now)}</b></p>`:''}
+    ${p.away?`<p><b>${p.away}</b></p>`:''}
+    ${def?`<h4>What the role is for</h4><p>${def.purpose}</p><h4>Day to day</h4>${list(def.duties)}<h4>Owns</h4>${list(def.owns)}<h4>Measured by</h4>${list(def.measured)}`:''}`;
+  d.classList.add('open'); d.setAttribute('aria-hidden','false');
+  document.getElementById('dx').onclick=closePerson;
+}
+function closePerson(){ const d=document.getElementById('drawer'); d.classList.remove('open'); d.setAttribute('aria-hidden','true'); }
+
+/* ═══════════ EVENTS ═══════════ */
 function setView(v){
-  curView=v;
-  document.getElementById('cardsView').classList.toggle('hidden',v!=='cards');
-  document.getElementById('orgView').classList.toggle('hidden',v!=='org');
-  document.querySelectorAll('#viewSeg button').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
-}
-function setStyle(s){
-  root.setAttribute('data-style',s);
-  document.querySelectorAll('#styleSeg button').forEach(b=>b.classList.toggle('on',b.dataset.style===s));
-  localStorage.setItem(LS('style'),s);
+  view=v; store.set('view',v);
+  ['timeline','roster','org'].forEach(x=>document.getElementById('v-'+x).classList.toggle('hidden',x!==v));
+  document.querySelectorAll('#views button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  document.querySelector('.bar').classList.toggle('hidden',v==='org');
+  render();
 }
 function setTheme(t){
-  root.setAttribute('data-theme',t);
-  document.getElementById('themeIcon').innerHTML = t==='dark'
-    ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
-    : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
-  localStorage.setItem(LS('theme'),t);
+  if(t) document.documentElement.setAttribute('data-theme',t); else document.documentElement.removeAttribute('data-theme');
+  const dark = t ? t==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  document.getElementById('themeBtn').textContent = dark ? 'Light' : 'Dark';
 }
-function setDensity(d){
-  root.setAttribute('data-density',d);
-  localStorage.setItem(LS('density'),d);
-}
-
-/* ═══════════════════════ ROLE PANEL ═══════════════════════ */
-function openRole(role, name, event){
-  event.stopPropagation();
-  const def=ROLE_DEFS[role]; if(!def) return;
-  const li=arr=>arr.map(i=>`<li>${i}</li>`).join('');
-  const panel=document.getElementById('rolePanel');
-  panel.innerHTML=`
-    <div class="rp-hdr">
-      <div><div class="rp-title">${role}</div><div class="rp-sub">${name}</div></div>
-      <button class="rp-close" onclick="closeRole()">✕</button>
-    </div>
-    <div class="rp-tabs">
-      <button class="rp-tab on" onclick="rpTab(this,0)">Purpose</button>
-      <button class="rp-tab" onclick="rpTab(this,1)">Duties</button>
-      <button class="rp-tab" onclick="rpTab(this,2)">Ownership</button>
-      <button class="rp-tab" onclick="rpTab(this,3)">Success</button>
-    </div>
-    <div class="rp-pane on"><p class="rp-purpose">${def.purpose}</p></div>
-    <div class="rp-pane"><ul class="rp-list">${li(def.responsibilities)}</ul></div>
-    <div class="rp-pane"><ul class="rp-list">${li(def.ownership)}</ul></div>
-    <div class="rp-pane"><ul class="rp-list">${li(def.success)}</ul></div>
-  `;
-  const btn=event.currentTarget, rect=btn.getBoundingClientRect();
-  const w=310, m=8;
-  let left=rect.right+m; if(left+w>window.innerWidth) left=rect.left-w-m; if(left<8) left=8;
-  let top=rect.top; if(top+520>window.innerHeight) top=Math.max(8,window.innerHeight-520);
-  panel.style.left=left+'px'; panel.style.top=top+'px';
-  panel.classList.add('open');
-}
-function rpTab(btn, idx){
-  const panel=document.getElementById('rolePanel');
-  panel.querySelectorAll('.rp-tab').forEach((b,i)=>b.classList.toggle('on',i===idx));
-  panel.querySelectorAll('.rp-pane').forEach((p,i)=>p.classList.toggle('on',i===idx));
-}
-function closeRole(){ document.getElementById('rolePanel').classList.remove('open'); }
-document.addEventListener('click',e=>{ if(!document.getElementById('rolePanel').contains(e.target) && !e.target.classList.contains('info-btn')) closeRole(); });
-
-/* ═══════════════════════ EVENTS ═══════════════════════ */
-document.getElementById('searchInput').addEventListener('input',e=>{ query=e.target.value; render(); });
-document.getElementById('onShiftBtn').addEventListener('click',function(){
-  filterOn=!filterOn; this.classList.toggle('on',filterOn); render();
+document.getElementById('views').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setView(b.dataset.v); });
+document.getElementById('progs').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b){ prog=b.dataset.p; render(); } });
+document.getElementById('q').addEventListener('input',e=>{ query=e.target.value.trim(); render(); });
+document.getElementById('onlyOn').addEventListener('change',e=>{ onlyOn=e.target.checked; render(); });
+document.addEventListener('click',e=>{
+  const n=e.target.closest('[data-id]'); if(n){ openPerson(n.dataset.id); return; }
+  if(!e.target.closest('#drawer')) closePerson();
 });
-document.getElementById('styleSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setStyle(b.dataset.style); });
-document.getElementById('viewSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setView(b.dataset.view); });
-document.getElementById('themeBtn').addEventListener('click',()=> setTheme(root.getAttribute('data-theme')==='dark'?'light':'dark'));
-document.getElementById('densityBtn').addEventListener('click',()=> setDensity(root.getAttribute('data-density')==='balanced'?'compact':'balanced'));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closePerson(); });
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark = document.getElementById('themeBtn').textContent==='Dark';
+  const t = dark ? 'dark' : 'light'; store.set('theme',t); setTheme(t);
+});
 
-/* ═══════════════════════ INIT ═══════════════════════ */
-(function init(){
-  const st=localStorage.getItem(LS('style')); if(st) setStyle(st);
-  const th=localStorage.getItem(LS('theme')); setTheme(th||'dark');
-  const de=localStorage.getItem(LS('density')); if(de) setDensity(de);
-  tick(); renderStats(); renderNav(); render();
-  setInterval(tick,1000);
-  setInterval(()=>{ renderStats(); render(); },30000);
-})();
+/* ═══════════ INIT ═══════════ */
+setTheme(store.get('theme'));
+setView(['timeline','roster','org'].includes(store.get('view')) ? store.get('view') : 'timeline');
+setInterval(render,30000);
 </script>
-<div class="role-panel" id="rolePanel"></div>
 </body>
 </html>

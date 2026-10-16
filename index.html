@@ -258,7 +258,7 @@ const PROGS = {
 const STAFF = {
   sup:   { name:'Supervisor',         role:'Supervisor',         schedule:'07:00 - 16:00' },
   ldr1:  { name:'Fernando Rivera',    role:'Dispatch Lead',      schedule:'05:00 - 14:00' },
-  ldr2:  { name:'Rene Ramos',         role:'Dispatch Lead',      schedule:'09:30 - 18:00' },
+  ldr2:  { open:true, name:'Open position', role:'Dispatch Lead', reason:'Replacing Rene Ramos', schedule:'09:30 - 18:00' },
   ldr3:  { name:'Ivan Lopez',         role:'Dispatch Lead',      schedule:'07:00 - 19:00' },
 
   flor:  { name:'Flor Pineda',        role:'Data Support', location:'San Diego',  schedule:'13:00 - 21:30', away:'On vacation' },
@@ -408,6 +408,7 @@ function openNote(p,now){
   const bits=[];
   if(p.replaces){ const r=STAFF[p.replaces];
     bits.push(active(r,now) ? `Replacing ${r.name}` : `Vacant since ${fmtDate(addDays(r.endDate,1),{month:'numeric',day:'numeric'})}`); }
+  if(p.reason) bits.push(p.reason);
   if(p.interview && now.date<=p.interview) bits.push(`interviews ${fmtDate(p.interview,{weekday:'short',month:'numeric',day:'numeric'})}`);
   return bits.join(' · ');
 }
@@ -430,7 +431,7 @@ function groups(now){
   progIds().forEach(pid=>{
     const pg=ORG.programs[pid], meta=PROGS[pid];
     const ids = prog==='all' ? [...pg.dispatchers,...pg.support] : [pg.lead,...pg.dispatchers,...pg.support];
-    g.push({ title:meta.name, meta:`Lead: ${STAFF[pg.lead].name}`, ids, prog:pid });
+    g.push({ title:meta.name, meta:`Lead: ${STAFF[pg.lead].open ? 'open position' : STAFF[pg.lead].name}`, ids, prog:pid });
   });
   if(prog==='all'){ g.push({ title:'Leads & supervisor', ids:['ldr1','ldr2','ldr3','sup'] });
                     g.push({ title:'Evening & overnight', ids:ORG.afterHours });
@@ -599,6 +600,11 @@ function renderNotices(now){
     const day = hiring[0][1].interview===now.date ? 'today' : fmtDate(hiring[0][1].interview,{weekday:'long',month:'short',day:'numeric'});
     n.unshift([`Interviews ${day}`, what.join(' and ').replace(/^./,c=>c.toUpperCase())+'.']);
   }
+  Object.entries(STAFF).filter(([,p])=>p.open && p.reason && !(p.interview && now.date<=p.interview)).forEach(([id,p])=>{
+    const where=Object.entries(ORG.leads).filter(([lid])=>lid===id).flatMap(([,ps])=>ps.map(x=>PROGS[x].short)).join('/')
+      || Object.entries(ORG.programs).filter(([,pg])=>[...pg.dispatchers,...pg.support].includes(id)).map(([pid])=>PROGS[pid].short).join('/');
+    n.push(['Hiring', `${where} ${p.role.toLowerCase()}. ${p.reason}.`]);
+  });
   document.getElementById('notices').innerHTML=n.map(([h,t])=>`<div class="notice"><b>${h}</b>${t}</div>`).join('');
 }
 function renderCount(now){

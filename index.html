@@ -236,6 +236,7 @@ footer{color:var(--ink-3);font-size:13px;padding:24px 0 48px}
              (by day: default = Mon–Fri; a weekend day only counts when it's listed; null = off)
    endDate:  last day worked (YYYY-MM-DD, Pacific) — hidden after that
    open:     unfilled position
+   startDate: first day (YYYY-MM-DD, or 'tbd') — shown before that, never counted as on shift
    away:     temporarily out (vacation, leave) — shown, never counted as on shift */
 const PROGS = {
   sdva:{ name:'San Diego VA',         short:'SDVA' },
@@ -259,8 +260,10 @@ const STAFF = {
   rcast: { name:'Rene Castro',        role:'Dispatcher',   schedule:'09:30 - 19:30' },
   will:  { name:'William Veliz',      role:'Support Team',
            schedule:{ default:'07:30 - 16:30', sat:null, sun:'05:45 - 14:00' }, endDate:'2026-10-18' },
-  willOpen:{ open:true, name:'Open position', role:'Support Team', replaces:'will', interview:'2026-10-14',
+  andy:  { name:'Andy Marroquin',     role:'Support Team', replaces:'will', note:'Replaces William Veliz', startDate:'2026-10-19',
            schedule:{ default:'07:30 - 16:30', sat:null, sun:'05:45 - 14:00' } },
+  ptSup: { open:true, name:'Open position', role:'Support Team', title:'Part-time support', reason:'Kevin Gonzalez pending',
+           schedule:'06:00 - 12:00' },
 
   anth:  { name:'Anthony Gomez',      role:'Dispatcher',   schedule:'06:00 - 14:30' },
   ryan:  { name:'Ryan Hwang',         role:'Dispatcher',   schedule:{ default:'10:00 - 18:30', sat:null, sun:null } },
@@ -274,8 +277,7 @@ const STAFF = {
   clau:  { name:'Claudia De La Cruz', role:'Dispatcher',   schedule:'06:00 - 14:00' },
   jacq:  { name:'Jacquie Marroquin',  role:'Dispatcher',   schedule:{ default:'09:00 - 18:00', sat:'14:45 - 22:00' } },
   susa:  { name:'Susan Marroquin',    role:'Dispatcher',   schedule:'07:00 - 17:00' },
-  fhcOpen:{ open:true, name:'Open position', role:'Dispatcher', title:'Part-time dispatcher', interview:'2026-10-14',
-           schedule:'06:00 - 12:00' },
+  sofi:  { name:'Sofi Aceituno',      role:'Dispatcher',   note:'Part-time', startDate:'tbd', schedule:'06:00 - 12:00' },
   alej:  { name:'Alejandro Jerez',    role:'Support Team', schedule:'12:00 - 20:00' },
 
   luca:  { name:'Luca Fajardo',       role:'Closing Dispatch',   schedule:'16:30 - 22:00' },
@@ -285,11 +287,11 @@ const STAFF = {
 const ORG = {
   leads:{ ldr1:['sdva','nctd'], ldr2:['lbva'], ldr3:['stpa','fhc'] },
   programs:{
-    sdva:{ lead:'ldr1', dispatchers:['cacos'],        support:['will','willOpen'] },
-    nctd:{ lead:'ldr1', dispatchers:['rcast'],        support:['will','willOpen'] },
+    sdva:{ lead:'ldr1', dispatchers:['cacos'],        support:['will','andy','ptSup'] },
+    nctd:{ lead:'ldr1', dispatchers:['rcast'],        support:['will','andy','ptSup'] },
     lbva:{ lead:'ldr2', dispatchers:['anth','ryan','adiaz'],         support:['andr','mari','jpar'] },
     stpa:{ lead:'ldr3', dispatchers:['clau','jacq'],  support:['alej'] },
-    fhc: { lead:'ldr3', dispatchers:['susa','fhcOpen'], support:['alej'] },
+    fhc: { lead:'ldr3', dispatchers:['susa','sofi'], support:['alej'] },
   },
   afterHours:['luca','maria'],
   dataSupport:['flor','cflo'],
@@ -373,8 +375,10 @@ function schedOn(p,dow){
   if(dow in sc) return sc[dow];
   return ['sat','sun'].includes(dow) ? null : sc.default;   // weekends only when listed
 }
+function started(p,now){ return !p.startDate || (p.startDate!=='tbd' && now.date>=p.startDate); }
+function startLabel(p){ return p.startDate==='tbd' ? 'start date TBD' : 'starts '+fmtDate(p.startDate,{weekday:'short',month:'numeric',day:'numeric'}); }
 function onShift(p,now){
-  if(p.away) return false;
+  if(p.away || !started(p,now)) return false;
   const t=parse(schedOn(p,now.dow));
   if(t && (t.e>t.s ? now.min>=t.s && now.min<t.e : now.min>=t.s)) return true;
   const y=parse(schedOn(p,prevDow(now.dow)));           // overnight shift that started yesterday
@@ -436,6 +440,7 @@ const hhmm = m => String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).p
 function status(p,now){
   if(p.open) return {state:'open'};
   if(p.away) return {state:'away'};
+  if(!started(p,now)) return {state:'starting'};
   const t=parse(schedOn(p,now.dow)), y=parse(schedOn(p,prevDow(now.dow)));
   if(y && y.e<=y.s && now.min<y.e) return {state:'on', end:hhmm(y.e)};
   if(!t) return {state:'off'};
@@ -448,7 +453,7 @@ function status(p,now){
 const pct = m => (m/1440*100).toFixed(3)+'%';
 function bars(p,now){
   const today=parse(schedOn(p,now.dow)), y=parse(schedOn(p,prevDow(now.dow)));
-  const on = !p.open && onShift(p,now), base = p.open ? 'open' : p.away ? 'away' : '';
+  const on = !p.open && onShift(p,now), base = p.open ? 'open' : (p.away || !started(p,now)) ? 'away' : '';
   let h='';
   if(y && y.e<=y.s && y.e>0){                              // tail of last night's shift
     const live = on && now.min<y.e;
@@ -472,6 +477,7 @@ function tlRow(id,now){
   if(p.endDate) tags+=`<span class="tag leave">Last day ${fmtDate(p.endDate,{weekday:'short',month:'numeric',day:'numeric'})}</span>`;
   if(p.open) tags+=`<span class="tag open">Open</span>`;
   if(p.away) tags+=`<span class="tag leave">${p.away}</span>`;
+  if(!started(p,now)) tags+=`<span class="tag leave">New · ${startLabel(p)}</span>`;
   const sub = p.open ? [p.role, openNote(p,now)].filter(Boolean).join(' · ')
                      : [p.role, p.location, p.note].filter(Boolean).join(' · ');
   return `<div class="tl-row">
@@ -508,7 +514,7 @@ function renderCards(now){
   const gs=groups(now);
   document.getElementById('cards').innerHTML = gs.map(g=>{
     const ps=g.ids.map(id=>({id, p:STAFF[id], st:status(STAFF[id],now)}));
-    const staff=g.all.filter(id=>!STAFF[id].open);
+    const staff=g.all.filter(id=>!STAFF[id].open && started(STAFF[id],now));
     const onCount=staff.filter(id=>onShift(STAFF[id],now)).length;
     const pips=[...staff.map(id=>`<i class="${onShift(STAFF[id],now)?'on':''}"></i>`), ...g.all.filter(id=>STAFF[id].open).map(()=>'<i class="open"></i>')].join('');
     const on=ps.filter(x=>x.st.state==='on'), later=ps.filter(x=>x.st.state==='later');
@@ -521,6 +527,8 @@ function renderCards(now){
                   : `<div class="none">Nobody on right now</div>`;
     if(later.length) h+=`<div><div class="lbl">Later today</div>${later.map(x=>row(x,'from '+x.st.start,'later')).join('')}</div>`;
     if(open.length) h+=open.map(x=>`<div class="openbox" data-id="${x.id}"><b>Open:</b> ${(x.p.title||x.p.role).toLowerCase()}, ${(schedOn(x.p,now.dow)||weekLabel(x.p)).replace(' - ','–')}${openNote(x.p,now)?` · ${openNote(x.p,now)}`:''}</div>`).join('');
+    const starting=ps.filter(x=>x.st.state==='starting');
+    if(starting.length) h+=`<div><div class="lbl">New, not started yet</div>${starting.map(x=>row(x,startLabel(x.p),'later')).join('')}</div>`;
     if(away.length) h+=`<div class="muted">${away.map(x=>`${x.p.name} · ${x.p.away.toLowerCase()}`).join('<br>')}</div>`;
     if(done.length) h+=`<div class="muted">Done or off: ${done.map(x=>x.p.name+(x.st.end?` (${x.st.end})`:'')).join(', ')}</div>`;
     return h+`</section>`;
@@ -547,7 +555,7 @@ function renderRoster(now){
     if(p.away) extra=`<div class="wk">${p.away}</div>`;
     h+=`<tr><td class="nmcell" data-id="${id}">${displayName(p)}${extra}</td><td>${p.role}</td><td>${(progsOf[id]||[]).join(', ')}</td>
       <td class="t">${today||'Off'}</td><td class="wk">${typeof p.schedule==='string'?'':weekLabel(p)}${p.note?`<br>${p.note}`:''}</td>
-      <td>${p.open?'<span class="st-off">Hiring</span>':p.away?'<span class="st-off">Away</span>':on?'<span class="st-on">On shift</span>':'<span class="st-off">Off</span>'}</td></tr>`;
+      <td>${p.open?'<span class="st-off">Hiring</span>':!started(p,now)?`<span class="st-off">New · ${startLabel(p)}</span>`:p.away?'<span class="st-off">Away</span>':on?'<span class="st-on">On shift</span>':'<span class="st-off">Off</span>'}</td></tr>`;
   });
   if(!rows.length) h+=`<tr><td colspan="6" class="wk">Nobody matches these filters.</td></tr>`;
   h+=`</tbody></table></div>`;
@@ -593,14 +601,19 @@ function renderNotices(now){
   Object.entries(STAFF).filter(([,p])=>p.open && p.reason && !(p.interview && now.date<=p.interview)).forEach(([id,p])=>{
     const where=Object.entries(ORG.leads).filter(([lid])=>lid===id).flatMap(([,ps])=>ps.map(x=>PROGS[x].short)).join('/')
       || Object.entries(ORG.programs).filter(([,pg])=>[...pg.dispatchers,...pg.support].includes(id)).map(([pid])=>PROGS[pid].short).join('/');
-    n.push(['Hiring', `${where} ${p.role.toLowerCase()}. ${p.reason}.`]);
+    n.push(['Hiring', `${where} ${(p.title||p.role).toLowerCase()}, ${schedOn(p,now.dow)?schedOn(p,now.dow).replace(' - ','–'):weekLabel(p)}. ${p.reason}.`]);
   });
+  const fresh=Object.entries(STAFF).filter(([,p])=>!p.open && p.startDate && !started(p,now));
+  if(fresh.length) n.unshift(['New hires', fresh.map(([id,p])=>{
+    const where=Object.entries(ORG.programs).filter(([,pg])=>[...pg.dispatchers,...pg.support].includes(id)).map(([pid])=>PROGS[pid].short).join('/');
+    return `${p.name}, ${where} ${p.note==='Part-time'?'part-time ':''}${p.role.toLowerCase()}${p.replaces?` (replaces ${STAFF[p.replaces].name})`:''}, ${startLabel(p)}.`;
+  }).join(' ')]);
   document.getElementById('notices').innerHTML=n.map(([h,t])=>`<div class="notice"><b>${h}</b>${t}</div>`).join('');
 }
 function renderCount(now){
   const ids=new Set(); Object.values(ORG.programs).forEach(pg=>[...pg.dispatchers,...pg.support,pg.lead].forEach(i=>ids.add(i)));
   ['sup',...ORG.afterHours,...ORG.dataSupport].forEach(i=>ids.add(i));
-  const people=[...ids].map(i=>STAFF[i]).filter(p=>!p.open && active(p,now));
+  const people=[...ids].map(i=>STAFF[i]).filter(p=>!p.open && active(p,now) && started(p,now));
   document.getElementById('count').innerHTML=`<b>${people.filter(p=>onShift(p,now)).length}</b> of ${people.length} people on shift`;
 }
 function renderProgs(){

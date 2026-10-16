@@ -237,6 +237,7 @@ footer{color:var(--ink-3);font-size:13px;padding:24px 0 48px}
    endDate:  last day worked (YYYY-MM-DD, Pacific) — hidden after that
    open:     unfilled position
    startDate: first day (YYYY-MM-DD, or 'tbd') — shown before that, never counted as on shift
+   training: shows a Training tag once they've started (remove when done)
    away:     temporarily out (vacation, leave) — shown, never counted as on shift */
 const PROGS = {
   sdva:{ name:'San Diego VA',         short:'SDVA' },
@@ -260,7 +261,7 @@ const STAFF = {
   rcast: { name:'Rene Castro',        role:'Dispatcher',   schedule:'09:30 - 19:30' },
   will:  { name:'William Veliz',      role:'Support Team',
            schedule:{ default:'07:30 - 16:30', sat:null, sun:'05:45 - 14:00' }, endDate:'2026-10-18' },
-  andy:  { name:'Andy Marroquin',     role:'Support Team', replaces:'will', note:'Replaces William Veliz', startDate:'2026-10-19',
+  andy:  { name:'Andy Marroquin',     role:'Support Team', replaces:'will', note:'Replaces William Veliz', startDate:'2026-10-19', training:true,
            schedule:{ default:'07:30 - 16:30', sat:null, sun:'05:45 - 14:00' } },
   ptSup: { open:true, name:'Open position', role:'Support Team', title:'Part-time support', reason:'Kevin Gonzalez pending',
            schedule:'06:00 - 12:00' },
@@ -277,7 +278,7 @@ const STAFF = {
   clau:  { name:'Claudia De La Cruz', role:'Dispatcher',   schedule:'06:00 - 14:00' },
   jacq:  { name:'Jacquie Marroquin',  role:'Dispatcher',   schedule:{ default:'09:00 - 18:00', sat:'14:45 - 22:00' } },
   susa:  { name:'Susan Marroquin',    role:'Dispatcher',   schedule:'07:00 - 17:00' },
-  sofi:  { name:'Sofi Aceituno',      role:'Dispatcher',   note:'Part-time', startDate:'tbd', schedule:'06:00 - 12:00' },
+  sofi:  { name:'Sofi Aceituno',      role:'Dispatcher',   note:'Part-time', startDate:'2026-10-19', training:true, schedule:'06:00 - 12:00' },
   alej:  { name:'Alejandro Jerez',    role:'Support Team', schedule:'12:00 - 20:00' },
 
   luca:  { name:'Luca Fajardo',       role:'Closing Dispatch',   schedule:'16:30 - 22:00' },
@@ -478,6 +479,7 @@ function tlRow(id,now){
   if(p.open) tags+=`<span class="tag open">Open</span>`;
   if(p.away) tags+=`<span class="tag leave">${p.away}</span>`;
   if(!started(p,now)) tags+=`<span class="tag leave">New · ${startLabel(p)}</span>`;
+  else if(p.training) tags+=`<span class="tag leave">Training</span>`;
   const sub = p.open ? [p.role, openNote(p,now)].filter(Boolean).join(' · ')
                      : [p.role, p.location, p.note].filter(Boolean).join(' · ');
   return `<div class="tl-row">
@@ -519,7 +521,7 @@ function renderCards(now){
     const pips=[...staff.map(id=>`<i class="${onShift(STAFF[id],now)?'on':''}"></i>`), ...g.all.filter(id=>STAFF[id].open).map(()=>'<i class="open"></i>')].join('');
     const on=ps.filter(x=>x.st.state==='on'), later=ps.filter(x=>x.st.state==='later');
     const done=ps.filter(x=>x.st.state==='done'||x.st.state==='off'), open=ps.filter(x=>x.st.state==='open'), away=ps.filter(x=>x.st.state==='away');
-    const row=(x,right,cls='')=>`<div class="who ${cls}" data-id="${x.id}"><span>${x.p.name}</span><span class="t">${right}</span></div>`;
+    const row=(x,right,cls='')=>`<div class="who ${cls}" data-id="${x.id}"><span>${x.p.name}${x.p.training&&started(x.p,now)?' · training':''}</span><span class="t">${right}</span></div>`;
     let h=`<section class="card"><div class="card-h"><h3>${g.title}</h3><span class="cv">${onCount} of ${staff.length} on</span></div>`;
     if(g.meta) h+=`<div class="meta">${g.meta}</div>`;
     h+=`<div class="pips" aria-hidden="true">${pips}</div>`;
@@ -553,6 +555,7 @@ function renderRoster(now){
     if(p.endDate) extra=`<div class="wk">Last day ${fmtDate(p.endDate)}</div>`;
     if(p.open) extra=`<div class="wk">${openNote(p,now)}</div>`;
     if(p.away) extra=`<div class="wk">${p.away}</div>`;
+    if(p.training && started(p,now)) extra=`<div class="wk">In training</div>`;
     h+=`<tr><td class="nmcell" data-id="${id}">${displayName(p)}${extra}</td><td>${p.role}</td><td>${(progsOf[id]||[]).join(', ')}</td>
       <td class="t">${today||'Off'}</td><td class="wk">${typeof p.schedule==='string'?'':weekLabel(p)}${p.note?`<br>${p.note}`:''}</td>
       <td>${p.open?'<span class="st-off">Hiring</span>':!started(p,now)?`<span class="st-off">New · ${startLabel(p)}</span>`:p.away?'<span class="st-off">Away</span>':on?'<span class="st-on">On shift</span>':'<span class="st-off">Off</span>'}</td></tr>`;
@@ -606,7 +609,7 @@ function renderNotices(now){
   const fresh=Object.entries(STAFF).filter(([,p])=>!p.open && p.startDate && !started(p,now));
   if(fresh.length) n.unshift(['New hires', fresh.map(([id,p])=>{
     const where=Object.entries(ORG.programs).filter(([,pg])=>[...pg.dispatchers,...pg.support].includes(id)).map(([pid])=>PROGS[pid].short).join('/');
-    return `${p.name}, ${where} ${p.note==='Part-time'?'part-time ':''}${p.role.toLowerCase()}${p.replaces?` (replaces ${STAFF[p.replaces].name})`:''}, ${startLabel(p)}.`;
+    return `${p.name}, ${where} ${p.note==='Part-time'?'part-time ':''}${p.role.toLowerCase()}${p.replaces?` (replaces ${STAFF[p.replaces].name})`:''}, ${startLabel(p)} (training).`;
   }).join(' ')]);
   document.getElementById('notices').innerHTML=n.map(([h,t])=>`<div class="notice"><b>${h}</b>${t}</div>`).join('');
 }

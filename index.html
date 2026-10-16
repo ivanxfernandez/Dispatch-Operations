@@ -23,16 +23,6 @@
   --away-bg:#eef1f4; --away-line:#7b8896;
   --now:#d1293d;
 }
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --bg:#0e151c; --paper:#151f29; --ink:#e6edf3; --ink-2:#b3c0cc; --ink-3:#8f9fae;
-    --line:#2a3a4a; --line-2:#1f2c38;
-    --band:#0a1622; --band-2:#9fb2c4;
-    --on:#3b82c9; --later-ink:#9cc4ee; --done:#2c3a48; --done-ink:#c9d4de;
-    --open:#e0a050; --open-ink:#f0bd80; --open-bg:#2a2013; --warn-line:#5a4422;
-    --away-bg:#1c2733; --away-line:#7b8896; --now:#f05264;
-  }
-}
 :root[data-theme="dark"]{
   --bg:#0e151c; --paper:#151f29; --ink:#e6edf3; --ink-2:#b3c0cc; --ink-3:#8f9fae;
   --line:#2a3a4a; --line-2:#1f2c38;
@@ -655,7 +645,7 @@ function setView(v){
 }
 function setTheme(t){
   if(t) document.documentElement.setAttribute('data-theme',t); else document.documentElement.removeAttribute('data-theme');
-  const dark = t ? t==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  const dark = t==='dark';                               // light unless someone picks dark
   document.getElementById('themeBtn').textContent = dark ? 'Light' : 'Dark';
 }
 document.getElementById('views').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setView(b.dataset.v); });
